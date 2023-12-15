@@ -54,80 +54,85 @@ void memory_destroy(memory mem) {
 }
 
 int memory_read_byte(memory mem, uint32_t address, uint8_t *value) {
-    if ((address >= (uint32_t)&(mem->data[0])) && (address < (uint32_t)&(mem->data[(mem->size)]))) {
-        printf("Adresse fournie incorrecte, hors de la plage de valeur");
+    if ((address < 0) || (address >= (mem->size))) {
+        printf("Adresse fournie incorrecte, hors de la plage de valeur\n");
         return -1;
     }
-    *value = *(uint8_t*)address;
+    *value = get_bits(mem->data[address], 8, 0);
     return 0;
 }
 
 int memory_read_half(memory mem, uint32_t address, uint16_t *value, uint8_t be) {
-    if ((address >= (uint32_t)&(mem->data[0])) && (address < (uint32_t)&(mem->data[(mem->size)]))) {
-        printf("Adresse fournie incorrecte, hors de la plage de valeur");
+    if ((address < 0) || (address >= (mem->size))) {
+        printf("Adresse fournie incorrecte, hors de la plage de valeur\n");
         return -1;
     }
 
     if (be) { //si en big endian
-        *value =*((uint16_t*)address);  
+        *value = get_bits(mem->data[address], 16, 0);  
     } 
     else {
-        *value =(uint16_t)reverse_2(*(uint32_t*)address);
+        *value = get_bits(reverse_2(mem->data[address]), 16, 0);
     }
     return 0;
 }
 
 int memory_read_word(memory mem, uint32_t address, uint32_t *value, uint8_t be) {
-    if ((address >= (uint32_t)&(mem->data[0])) && (address < (uint32_t)&(mem->data[(mem->size)]))) {
-        printf("Adresse fournie incorrecte, hors de la plage de valeur");
+    if ((address < 0) || (address >= (mem->size))) {
+        printf("Adresse fournie incorrecte, hors de la plage de valeur\n");
         return -1;
     }
   
     if(be) {
-        *value = *((uint32_t*) address);
+        *value = mem->data[address];
     } 
     else {
-        *value = *((uint32_t*)reverse_4(address));
+        *value = reverse_4(mem->data[address]);
     }
     return 0; 
 }
 
 int memory_write_byte(memory mem, uint32_t address, uint8_t value) {
-    if ((address >= (uint32_t)&(mem->data[0])) && (address < (uint32_t)&(mem->data[(mem->size)]))) {
-        printf("Adresse fournie incorrecte, hors de la plage de valeur");
+    if ((address < 0) || (address >= (mem->size))) {
+        printf("Adresse fournie incorrecte, hors de la plage de valeur\n");
         return -1;
     }
-
-    set_bits((*(uint8_t*)address),8, 0, value);
+    mem->data[address] = (value);
+    //set_bits(mem->data[address], 24, 8, value);
     return 0;
 }
 
 int memory_write_half(memory mem, uint32_t address, uint16_t value, uint8_t be) {
-    if ((address >= (uint32_t)&(mem->data[0])) && (address < (uint32_t)&(mem->data[(mem->size)]))) {
+    if ((address < 0) || (address >= (mem->size))) {
         printf("Adresse fournie incorrecte, hors de la plage de valeur");
         return -1;
     }
     
     if(be) {
-        set_bits((*(uint16_t*)address),16, 0, value);
+        mem->data[address] = (uint32_t)(value);
+        //set_bits(mem->data[address], 16, 16, value);
     } 
     else {
-       set_bits((*(uint16_t*)reverse_2(address)),16, 0, value);
+        mem->data[address] = (uint32_t)(value<<16);
+       //set_bits(reverse_2(mem->data[address]), 16, 16, value);
     }
     return 0;
     
 }
 
 int memory_write_word(memory mem, uint32_t address, uint32_t value, uint8_t be) {
-    if ((address >= (uint32_t)&(mem->data[0])) && (address < (uint32_t)&(mem->data[(mem->size)]))) {
+    if ((address < 0) || (address >= (mem->size))) {
         printf("Adresse fournie incorrecte, hors de la plage de valeur");
         return -1;
     }
 
     if(be){
-        set_bits(address, 32, 0, value);    
+        mem->data[address] = value;
+        //set_bits(mem->data[address], 0, 32, value);    
     }
     else{
-        set_bits(reverse_4(address), 32, 0, value);    
+        mem->data[address] = reverse_4(value);
+        //set_bits(reverse_4(mem->data[address]), 0, 32, value);    
     }
+    return 0;
 }
