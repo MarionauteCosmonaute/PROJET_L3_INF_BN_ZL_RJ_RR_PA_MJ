@@ -26,15 +26,14 @@ Contact: Guillaume.Huard@imag.fr
 
 struct registers_data
 {
-    uint32_t *registre;
+    uint64_t *registre;
 };
 
 registers registers_create()
 {
-	registers table_registre = malloc(sizeof(uint32_t)*17);
-    if ( table_registre == NULL )
-    {
-        printf("Il y a eu problème lors de l'allocation mémoire d'un registre\n");
+	registers table_registre = malloc(sizeof(registers));
+	table_registre->registre  = malloc(sizeof(uint32_t)*37);   
+	if ( table_registre == NULL ){
         return NULL;
     }
     return table_registre;
@@ -42,12 +41,13 @@ registers registers_create()
 
 void registers_destroy(registers table_registre)
 {
-    free(table_registre);
+    free(table_registre->registre);
+	free(table_registre);
 }
 
 uint8_t registers_get_mode(registers table_registre) 
 {
-    return table_registre->registre[16] & 31;  //On masque le registre CPSR pour récupérer les 5 bits de poids faible
+    return (uint8_t)table_registre->registre[16] & 0x1f;  //On masque le registre CPSR pour récupérer les 5 bits de poids faible
 }
 
 static int registers_mode_has_spsr(uint8_t mode) {
@@ -58,40 +58,44 @@ static int registers_mode_has_spsr(uint8_t mode) {
 }
 
 int registers_current_mode_has_spsr(registers r) {
-    return registers_mode_has_spsr(r, registers_get_mode(r));
+    return registers_mode_has_spsr(registers_get_mode(r));
 }
 
 int registers_in_a_privileged_mode(registers r) {
-    /* � compl�ter... */
-    return 0;
+	if (registers_get_mode(r) == USR){
+		return 0;
+	}
+	return 1;
 }
 
 uint32_t registers_read(registers r, uint8_t reg, uint8_t mode) {
     uint32_t value = 0;
-    /* � compl�ter... */
+	value = r->registre[reg];
     return value;
 }
 
 uint32_t registers_read_cpsr(registers r) {
     uint32_t value = 0;
-    /* � compl�ter... */
+	value = r->registre[16]; //16 = numéro de registre du cpsr
     return value;
 }
 
 uint32_t registers_read_spsr(registers r, uint8_t mode) {
-    uint32_t value = 0;
-    /* � compl�ter... */
-    return value;
+	uint32_t value = 0;
+	if(registers_mode_has_spsr(mode)){
+		value = r->registre[17];
+	}
+	return value;
 }
 
 void registers_write(registers r, uint8_t reg, uint8_t mode, uint32_t value) {
-    /* � compl�ter... */
+	r->registre[reg] = value;
 }
 
 void registers_write_cpsr(registers r, uint32_t value) {
-    /* � compl�ter... */
+	r->registre[16] = value;
 }
 
 void registers_write_spsr(registers r, uint8_t mode, uint32_t value) {
-    /* � compl�ter... */
+    r->registre[17] = value;
 }
