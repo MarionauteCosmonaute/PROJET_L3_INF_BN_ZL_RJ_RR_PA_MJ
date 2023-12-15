@@ -26,28 +26,28 @@ Contact: Guillaume.Huard@imag.fr
 
 struct registers_data
 {
-    uint32_t R;
+    uint32_t *registre;
 };
 
 registers registers_create()
 {
-    registers r = (uint32_t *)malloc(sizeof(uint32_t)*17);
-    if ( r == NULL )
+	registers table_registre = malloc(sizeof(uint32_t)*17);
+    if ( table_registre == NULL )
     {
-        printf("Il y a eu problème lors de l'allocation mémoire d'un registre\n")
-        return NULL
+        printf("Il y a eu problème lors de l'allocation mémoire d'un registre\n");
+        return NULL;
     }
-    return r;
+    return table_registre;
 }
 
-void registers_destroy(registers r)
+void registers_destroy(registers table_registre)
 {
-    free(r);
+    free(table_registre);
 }
 
-uint8_t registers_get_mode(registers r) 
+uint8_t registers_get_mode(registers table_registre) 
 {
-    return r[16] & 31;  //On récupère les 5 bits de poids faible de cpsr (registre r16) qui détermine les modes
+    return table_registre->registre[16] & 31; 
 }
 
 static int registers_mode_has_spsr(registers r, uint8_t mode) {
