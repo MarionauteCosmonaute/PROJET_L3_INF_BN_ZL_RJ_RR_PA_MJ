@@ -47,11 +47,13 @@ void registers_destroy(registers table_registre)
 
 uint8_t registers_get_mode(registers table_registre) 
 {
-    return table_registre->registre[16] & 31; 
+    return table_registre->registre[16] & 31;  //On masque le registre CPSR pour récupérer les 5 bits de poids faible
 }
 
-static int registers_mode_has_spsr(registers r, uint8_t mode) {
-    /* � compl�ter... */
+static int registers_mode_has_spsr(uint8_t mode) {
+	if(mode == USR || mode == SYS){
+		return 0;
+	} 
     return 1;
 }
 
