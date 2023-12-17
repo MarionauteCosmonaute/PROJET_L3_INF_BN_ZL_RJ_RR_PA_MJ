@@ -27,7 +27,7 @@ Contact: Guillaume.Huard@imag.fr
 
 struct memory_data {
     size_t size;
-    uint32_t *data;
+    uint8_t *data;
 };
 
 memory memory_create(size_t size) {
@@ -36,7 +36,7 @@ memory memory_create(size_t size) {
       return NULL;
     }
     mem->size = size;
-    mem->data = (uint32_t *)malloc(sizeof(uint32_t) *size);
+    mem->data = (uint8_t *)malloc(sizeof(uint8_t) *size);
 
     if (mem->data == NULL) {
         free(mem);
@@ -58,7 +58,7 @@ int memory_read_byte(memory mem, uint32_t address, uint8_t *value) {
         printf("Adresse fournie incorrecte, hors de la plage de valeur\n");
         return -1;
     }
-    *value = get_bits(mem->data[address], 8, 0);
+    *value = (uint8_t)mem->data[address];
     return 0;
 }
 
@@ -68,11 +68,12 @@ int memory_read_half(memory mem, uint32_t address, uint16_t *value, uint8_t be) 
         return -1;
     }
 
+    uint16_t tmp = mem->data[address+1] +(mem->data[address]<<8);
     if (be) { //si en big endian
-        *value = get_bits(mem->data[address], 16, 0);  
+        *value = tmp;  
     } 
     else {
-        *value = get_bits(reverse_2(mem->data[address]), 16, 0);
+        *value = reverse_2(tmp);
     }
     return 0;
 }
@@ -82,12 +83,15 @@ int memory_read_word(memory mem, uint32_t address, uint32_t *value, uint8_t be) 
         printf("Adresse fournie incorrecte, hors de la plage de valeur\n");
         return -1;
     }
-  
+    uint32_t tmp = 0;
+    for (int i=0;i<4;i++){
+        tmp+=(mem->data[address+i]<<(3-i)*8);
+    }
     if(be) {
-        *value = mem->data[address];
+        *value = tmp;
     } 
     else {
-        *value = reverse_4(mem->data[address]);
+        *value = reverse_4(tmp);
     }
     return 0; 
 }
@@ -107,14 +111,15 @@ int memory_write_half(memory mem, uint32_t address, uint16_t value, uint8_t be) 
         printf("Adresse fournie incorrecte, hors de la plage de valeur");
         return -1;
     }
-    
-    if(be) {
-        mem->data[address] = (uint32_t)(value);
-        //set_bits(mem->data[address], 16, 16, value);
-    } 
-    else {
-        mem->data[address] = (uint32_t)(value<<16);
-       //set_bits(reverse_2(mem->data[address]), 16, 16, value);
+    for(int i=0;i<2;i++){
+        if(be) {
+            mem->data[address+i] = get_bits(value,8*(2-i),8*(1-i));
+            //set_bits(mem->data[address], 16, 16, value);
+        } 
+        else {
+            mem->data[address+i] = get_bits(value,8*(i+1),8*i);
+           //set_bits(reverse_2(mem->data[address]), 16, 16, value);
+        }
     }
     return 0;
     
@@ -125,14 +130,15 @@ int memory_write_word(memory mem, uint32_t address, uint32_t value, uint8_t be) 
         printf("Adresse fournie incorrecte, hors de la plage de valeur");
         return -1;
     }
-
-    if(be){
-        mem->data[address] = value;
-        //set_bits(mem->data[address], 0, 32, value);    
-    }
-    else{
-        mem->data[address] = reverse_4(value);
-        //set_bits(reverse_4(mem->data[address]), 0, 32, value);    
+    for(int i=0;i<4;i++){
+        if(be){
+            mem->data[address+i] = get_bits(value,8*(4-i),8*(3-i));
+            //set_bits(mem->data[address], 0, 32, value);    
+        }
+        else{
+            mem->data[address+i] = get_bits(value,8*(i+1),8*i);
+            //set_bits(reverse_4(mem->data[address]), 0, 32, value);    
+        }
     }
     return 0;
 }
