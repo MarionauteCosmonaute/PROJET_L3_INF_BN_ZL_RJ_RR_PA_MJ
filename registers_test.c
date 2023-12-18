@@ -61,7 +61,7 @@ int main() {
         registers_write(r, i, mode, word_value[i]);
     }
     for (i = 0; i < 15; i++) {
-        word_read = registers_read(r, mode, i);
+        word_read = registers_read(r, i, mode);
         printf("- register %d : ", i);
         print_test(word_read == word_value[i]);
     }
