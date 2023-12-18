@@ -52,7 +52,7 @@ R1 = reg base
 
 
 int arm_load_store(arm_core p, uint32_t ins) {
-    int p = get_bit(ins, 24);
+    int p_bit = get_bit(ins, 24);
     int u = get_bit(ins, 23);
     int b = get_bit(ins, 22); //bit B : byte ou word
     int w = get_bit(ins, 21);
@@ -62,7 +62,7 @@ int arm_load_store(arm_core p, uint32_t ins) {
     uint8_t reg_source_dest = get_bits(ins, 15, 12);
     uint32_t offset;
     uint32_t adresse;
-    uint32_t *value;
+    uint32_t *value = (uint32_t *)malloc(sizeof(uint32_t));;
     if(immediat == 0){
         offset = get_bits(ins, 11, 0);
     }
@@ -101,10 +101,37 @@ int arm_load_store(arm_core p, uint32_t ins) {
             adresse = adresse - offset;
         } 
 
-
+        return 0;
     }
     else if(p == 0 && w == 1){
-        //?????
+        adresse = (p->reg)->registre[reg_base];
+        if (u == 1){
+            adresse = adresse + offset;
+        }
+        else{
+            adresse = adresse - offset;
+        } 
+        if (l){ //load
+            if(b == 1)
+            {
+                arm_read_byte(p, adresse, (uint8_t *) value);
+            }
+            else{
+                arm_read_word(p, adresse, value);
+            }
+            arm_write_usr_register(p, reg_source_dest, *value);
+        }
+        else { //store
+            arm_read_usr_register(p, reg_source_dest);
+            if(b == 1)
+            {
+               arm_write_byte(p, adresse, value); 
+            }
+            else{
+               arm_write_word(p, adresse, value);
+            }
+        }
+        return 0;
     }
     else if(p == 1 && w == 0){
         adresse = (p->reg)->registre[reg_base];
@@ -128,6 +155,7 @@ int arm_load_store(arm_core p, uint32_t ins) {
                arm_write_word(p, adresse, value);
             }
         }
+        return 0;
     }
     else { // p == 1 et w == 1)
         adresse = (p->reg)->registre[reg_base];
@@ -157,17 +185,80 @@ int arm_load_store(arm_core p, uint32_t ins) {
                arm_write_word(p, adresse, value);
             }
         }
+        return 0;
     }
-
-
     return UNDEFINED_INSTRUCTION;
 }
 
 int arm_load_store_multiple(arm_core p, uint32_t ins) {
-    return UNDEFINED_INSTRUCTION;
+    int p_bit = get_bit(ins, 24);
+    int u = get_bit(ins, 23);
+    int s = get_bit(ins, 22);
+    int w = get_bit(ins, 21);
+    int l = get_bit(ins, 20);
+    uint8_t reg_base = get_bits(ins, 19, 16);
+    uint32_t adresse = (p->reg)->registre[reg_base];
+    uint32_t value; //2eme facon, verif laquelle est mieux avec la fonc precedente
+    
+    if (l && s && arm_in_a_privileged_mode(p)) {
+        // LDM with the S bit set is UNPREDICTABLE in User or System mode. 
+        // System mode???? Page 482
+        return UNDEFINED_INSTRUCTION;
+    }
+
+    int direction; // direction du transfert
+    if (u) {
+        direction = 1;  
+    }
+   else {
+        direction = -1;
+    }
+
+    if ((p_bit == 0 && u == 0) || (p_bit == 1 && u == 1)) {
+        adresse -= direction; // à verif j'ai pas hyper compris
+    }
+
+    int increment = 0; //calcule l'incrementation
+    if (w) {
+        int nbReg = count_bits_set(get_bits(ins, 15, 0));
+        increment = 4 * nbReg * direction;
+    }
+
+
+    for (int reg_num = 0; reg_num <= 15; reg_num++) {
+        if (get_bit(ins, reg_num)) {
+            if (l) { // Load
+                arm_read_word(p, adresse, &value);
+                arm_write_register(p, reg_num, value);
+            } else { // Store
+                value = (p->reg)->registre[reg_num];
+                arm_write_word(p, adresse, value);
+                
+            }
+            adresse += increment;
+        }
+    }
+
+    if (w) { //maj du reg apres le transfert
+        (p->reg)->registre[reg_base] = adresse + increment;
+    }
+
+    return 0;
 }
 
 int arm_coprocessor_load_store(arm_core p, uint32_t ins) {
-    /* Not implemented */
+    int p_bit = get_bit(ins, 24);
+    int u = get_bit(ins, 23);
+    int s = get_bit(ins, 22);
+    int w = get_bit(ins, 21);
+    int l = get_bit(ins, 20);
+    uint8_t reg_base = get_bits(ins, 19, 16);
+    uint8_t dest_reg = get_bits(ins, 15, 12);
+    uint8_t coprocessor_num = get_bits(ins, 11, 8);
+    uint32_t offset;
+    //pas compris à quoi servait N
+    //mais quasi la meme chose que la premiere fonction
+
+
     return UNDEFINED_INSTRUCTION;
 }
