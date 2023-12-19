@@ -30,7 +30,7 @@ Contact: Guillaume.Huard@imag.fr
 
 static int arm_execute_instruction(arm_core p) {
 	uint32_t ins = (p->reg)->registre[15];
-	int test = (ins&(7<<25))>>25;
+	int test = (ins>>25)&7;
 	arm_fetch(p, &ins);
 	switch(test){
 	case 0:
