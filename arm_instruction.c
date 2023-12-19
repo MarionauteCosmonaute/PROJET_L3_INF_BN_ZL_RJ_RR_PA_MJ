@@ -29,7 +29,29 @@ Contact: Guillaume.Huard@imag.fr
 #include "util.h"
 
 static int arm_execute_instruction(arm_core p) {
-    return 0;
+	uint32_t ins = (p->reg)->registre[15];
+	int test = (ins&(7<<25))>>25;
+	arm_fetch(p, &ins);
+	switch(test){
+	case 0:
+		return arm_data_processing_shift(p, ins);
+	case 1:
+		return arm_data_processing_immediate_msr(p, ins);
+	case 2:
+		return arm_load_store(p, ins);
+	case 3:
+		return arm_load_store(p, ins);
+	case 4:
+		return arm_load_store_multiple(p, ins);
+	case 5:
+		return arm_branch(p, ins);
+	case 6:
+		return arm_coprocessor_load_store(p, ins);
+	case 7:
+		return arm_coprocessor_others_swi(p, ins);
+	default:
+		return -1;
+	}
 }
 
 int arm_step(arm_core p) {
