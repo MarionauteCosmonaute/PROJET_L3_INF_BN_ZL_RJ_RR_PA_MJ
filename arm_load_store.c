@@ -133,7 +133,8 @@ int arm_load_store_multiple(arm_core p, uint32_t ins) {
     int l = get_bit(ins, 20);
     uint8_t Rn = get_bits(ins, 19, 16);
     uint32_t adresse = (p->reg)->registre[Rn];
-    uint32_t *value = (uint32_t *)malloc(sizeof(uint32_t));    
+    uint32_t *value = (uint32_t *)malloc(sizeof(uint32_t)); 
+    uint32_t val_pc;   
     
     if (l && s && ( registers_get_mode(p->reg) == SYS || registers_get_mode(p->reg) == USR)) {
         return UNDEFINED_INSTRUCTION;
@@ -166,15 +167,43 @@ int arm_load_store_multiple(arm_core p, uint32_t ins) {
         increment = 4 * nbReg * direction;
     }
 
-
+    /*
+    Rajouter ce cas particulier :
+    For LDMs that load the PC, the S bit indicates that the CPSR is loaded from the SPSR. For
+    LDMs that do not load the PC and all STMs, the S bit indicates that when the processor is in a
+    privileged mode, the User mode banked registers are transferred instead of the registers of
+    the current mode.
+    */
     for (int reg_num = 0; reg_num < 16; reg_num++) {
         if (get_bit(ins, reg_num)) {
             if (l) { // Load
-                arm_read_word(p, adresse, value);
-                arm_write_register(p, reg_num, *value);
-            } else { // Store
-                *value = (p->reg)->registre[reg_num];
-                arm_write_word(p, adresse, *value);   
+                if(reg_num == 15 && s == 1){
+                    arm_write_cpsr(p, arm_read_spsr(p))
+                    val_pc = arm_read_cpsr(p);
+                    arm_write_register(p, reg_num, val_pc);
+                }
+                else{
+                    if(s == 1 && arm_in_a_privileged_mode(p) == 1){
+                        arm_read_word(p, adresse, value);
+                        arm_write_usr_register(p, reg_num, *value);
+                        //the User mode banked registers are transferred instead of the registers of the current mode. 
+                    }
+                    else{
+                        arm_read_word(p, adresse, value);
+                        arm_write_register(p, reg_num, *value);
+                    }
+                }
+            } 
+            else { // Store
+                if(s == 1 && arm_in_a_privileged_mode(p) == 1){
+                    //the User mode banked registers are transferred instead of the registers of the current mode. 
+                    *value = arm_read_usr_register(p, reg_num);
+                    arm_write_word(p, adresse, *value);                   
+                }
+                else{
+                    *value = (p->reg)->registre[reg_num];
+                    arm_write_word(p, adresse, *value);  
+                } 
             }
         }
     }
