@@ -29,7 +29,7 @@ struct memory_data {
     size_t size;
     uint8_t *data;
 };
-
+/*Initialize memory access*/
 memory memory_create(size_t size) {
     memory mem = malloc(sizeof(struct memory_data));
     if (mem==NULL){
@@ -43,16 +43,16 @@ memory memory_create(size_t size) {
     }
     return mem;
 }
-
+/*gives memory size*/
 size_t memory_get_size(memory mem) {
     return mem->size;
 }
-
+/*destroy memory access*/
 void memory_destroy(memory mem) {
     free(mem->data);
     free(mem);
 }
-
+/*Reads a byte at the given address in the given memory, stores it at value, returns 0 if everything went well, -1 otherwise*/
 int memory_read_byte(memory mem, uint32_t address, uint8_t *value) {
     if ((address < 0) || (address >= (mem->size))) {
         printf("Adresse fournie incorrecte, hors de la plage de valeur\n");
@@ -62,6 +62,7 @@ int memory_read_byte(memory mem, uint32_t address, uint8_t *value) {
     return 0;
 }
 
+/*Reads a half word at the given address in the given memory, stores it at value, returns 0 if everything went well, -1 otherwise*/
 int memory_read_half(memory mem, uint32_t address, uint16_t *value, uint8_t be) {
     if ((address < 0) || (address >= (mem->size))) {
         printf("Adresse fournie incorrecte, hors de la plage de valeur\n");
@@ -77,7 +78,8 @@ int memory_read_half(memory mem, uint32_t address, uint16_t *value, uint8_t be) 
     }
     return 0;
 }
-
+    
+/*Reads a word at the given address in the given memory, stores it at value, returns 0 if everything went well, -1 otherwise*/
 int memory_read_word(memory mem, uint32_t address, uint32_t *value, uint8_t be) {
     if ((address < 0) || (address >= (mem->size))) {
         printf("Adresse fournie incorrecte, hors de la plage de valeur\n");
@@ -96,6 +98,7 @@ int memory_read_word(memory mem, uint32_t address, uint32_t *value, uint8_t be) 
     return 0; 
 }
 
+/*Writes a byte at the given address in the given memory, returns 0 if everything went well, -1 otherwise*/
 int memory_write_byte(memory mem, uint32_t address, uint8_t value) {
     if ((address < 0) || (address >= (mem->size))) {
         printf("Adresse fournie incorrecte, hors de la plage de valeur\n");
@@ -105,7 +108,7 @@ int memory_write_byte(memory mem, uint32_t address, uint8_t value) {
     //set_bits(mem->data[address], 24, 8, value);
     return 0;
 }
-
+/*Writes a half word at the given address in the given memory, returns 0 if everything went well, -1 otherwise*/
 int memory_write_half(memory mem, uint32_t address, uint16_t value, uint8_t be) {
     if ((address < 0) || (address >= (mem->size))) {
         printf("Adresse fournie incorrecte, hors de la plage de valeur");
@@ -124,7 +127,7 @@ int memory_write_half(memory mem, uint32_t address, uint16_t value, uint8_t be) 
     return 0;
     
 }
-
+/*Writes a word at the given address in the given memory, returns 0 if everything went well, -1 otherwise*/
 int memory_write_word(memory mem, uint32_t address, uint32_t value, uint8_t be) {
     if ((address < 0) || (address >= (mem->size))) {
         printf("Adresse fournie incorrecte, hors de la plage de valeur");
