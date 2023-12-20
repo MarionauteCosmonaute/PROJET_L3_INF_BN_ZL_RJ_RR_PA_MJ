@@ -25,34 +25,32 @@ Contact: Guillaume.Huard@imag.fr
 #include "arm_constants.h"
 #include "util.h"
 #include "debug.h"
+#include <stdlib.h>
 
-/*
-load : lecture d'une adresse dans la mémoire et on le stocke dans un reg
--> read byte/word puis write reg
+void read_write(int l, int b, arm_core p, uint32_t adresse, uint8_t Rd, uint32_t *value){
+    if (l){ //load
+        if(b == 1){
+            arm_read_byte(p, adresse, (uint8_t *) value);
+        }
+        else{
+            arm_read_word(p, adresse, value);
+        }
+        arm_write_register(p, Rd, *value);
+    }
+    else { //store
+        arm_read_register(p, Rd);
+        if(b == 1){
+            arm_write_byte(p, adresse, *(uint8_t *)value); 
+        }
+        else{
+            arm_write_word(p, adresse, *value);
+         }
+    }
+}
 
-store : on lit dans un reg et on le stocke dans une adresse
--> read reg et write byte/word
-
-
-L load 1 / store 0
-B byte 1 / word 0
-25 immediat 0 / dans reg 1
-U add 1 / sub 0
-P 0 : W 0 R0 = Mem[R1] puis R1 = R1 + offset
-      W 1 unprivileged acces ???
-  1 : W 0 R0 = Mem[R1]
-      W 1 R1 = R1 + offset puis R0 = Mem[R1]
-
-
-LDR R0, [R1, #4]
-
-R0 = reg source dest
-R1 = reg base
-*/
-
-
+//page 459
 int arm_load_store(arm_core p, uint32_t ins) {
-    if(cond_respect(p, ins)){
+    if(cond_not_respect(p, ins)){
         return -1;
     }
 
@@ -62,18 +60,18 @@ int arm_load_store(arm_core p, uint32_t ins) {
     int w = get_bit(ins, 21);
     int l = get_bit(ins, 20); // 0 store, 1 load
     int immediat = get_bit(ins, 25);
-    uint8_t reg_base = get_bits(ins, 19, 16);
-    uint8_t reg_source_dest = get_bits(ins, 15, 12);
+    uint8_t Rn = get_bits(ins, 19, 16);
+    uint8_t Rd = get_bits(ins, 15, 12);
     uint32_t offset;
-    uint32_t adresse = (p->reg)->registre[reg_base];
+    uint32_t adresse = (p->reg)->registre[Rn];
     uint32_t *value = (uint32_t *)malloc(sizeof(uint32_t));
     
     if(immediat == 0){
         offset = get_bits(ins, 11, 0);
     }
     else{
-        uint8_t rm = get_bits(ins, 3, 0);
-        offset = (p->reg)->registre[rm];
+        uint8_t Rm = get_bits(ins, 3, 0);
+        offset = (p->reg)->registre[Rm];
     }
 
     if (u == 0){
@@ -81,106 +79,50 @@ int arm_load_store(arm_core p, uint32_t ins) {
     }
 
     if (p_bit == 0 && w == 0){
+        read_write(l, b, p, adresse, Rd, *value);
+        adresse += offset;
+        (p->reg)->registre[Rn] = adresse;
+        return 0;
+    }
+    else if(p_bit == 0 && w == 1){
         if (l){ //load
-            if(b == 1)
-            {
+            if(b == 1){
                 arm_read_byte(p, adresse, (uint8_t *) value);
             }
             else{
                 arm_read_word(p, adresse, value);
             }
-            arm_write_register(p, reg_source_dest, *value);
+            arm_write_usr_register(p, Rd, *value);
         }
         else { //store
-            arm_read_register(p, reg_source_dest);
-            if(b == 1)
-            {
-               arm_write_byte(p, adresse, *(uint8_t *)value); 
+            arm_read_usr_register(p, Rd);
+            if(b == 1){
+               arm_write_byte(p, adresse, *value); 
             }
             else{
                arm_write_word(p, adresse, *value);
             }
         }
         adresse += offset;
-        return 0;
-    }
-    else if(p_bit == 0 && w == 1){
-        adresse += offset; 
-        if (l){ //load
-            if(b == 1)
-            {
-                arm_read_byte(p, adresse, (uint8_t *) value);
-            }
-            else{
-                arm_read_word(p, adresse, value);
-            }
-            arm_write_usr_register(p, reg_source_dest, *value);
-        }
-        else { //store
-            arm_read_usr_register(p, reg_source_dest);
-            if(b == 1)
-            {
-               arm_write_byte(p, adresse, *value); 
-            }
-            else{
-               arm_write_word(p, adresse, *value);
-            }
-        }
+        (p->reg)->registre[Rn] = adresse;
         return 0;
     }
     else if(p_bit == 1 && w == 0){
-        if (l){ //load
-            if(b == 1)
-            {
-                arm_read_byte(p, adresse, (uint8_t *) value);
-            }
-            else{
-                arm_read_word(p, adresse, value);
-            }
-            arm_write_register(p, reg_source_dest, *value);
-        }
-        else { //store
-            arm_read_register(p, reg_source_dest);
-            if(b == 1)
-            {
-               arm_write_byte(p, adresse, *(uint8_t *) value); 
-            }
-            else{
-               arm_write_word(p, adresse, *value);
-            }
-        }
+        read_write(l, b, p, adresse, Rd, *value);
         return 0;
     }
-    else { // p == 1 et w == 1)
+    else{ // p == 1 et w == 1)
         adresse += offset; 
-        (p->reg)->registre[reg_base] = adresse;
-        if (l){ //load
-            if(b == 1)
-            {
-                arm_read_byte(p, adresse, (uint8_t *) value);
-            }
-            else{
-                arm_read_word(p, adresse, value);
-            }
-            arm_write_register(p, reg_source_dest, *value);
-        }
-        else { //store
-            arm_read_register(p, reg_source_dest);
-            if(b == 1)
-            {
-               arm_write_byte(p, adresse, *value); 
-            }
-            else{
-               arm_write_word(p, adresse, *value);
-            }
-        }
+        (p->reg)->registre[Rn] = adresse;
+        read_write(l, b, p, adresse, Rd, *value);
         return 0;
     }
     return UNDEFINED_INSTRUCTION;
 }
 
+//page 482
 int arm_load_store_multiple(arm_core p, uint32_t ins) {
-    if(cond_respect(p, ins)){
+    if(cond_not_respect(p, ins)){
         return -1;
     }
     
@@ -189,8 +131,8 @@ int arm_load_store_multiple(arm_core p, uint32_t ins) {
     int s = get_bit(ins, 22);
     int w = get_bit(ins, 21);
     int l = get_bit(ins, 20);
-    uint8_t reg_base = get_bits(ins, 19, 16);
-    uint32_t adresse = (p->reg)->registre[reg_base];
+    uint8_t Rn = get_bits(ins, 19, 16);
+    uint32_t adresse = (p->reg)->registre[Rn];
     uint32_t *value = (uint32_t *)malloc(sizeof(uint32_t));    
     
     if (l && s && ( registers_get_mode(p->reg) == SYS || registers_get_mode(p->reg) == USR)) {
@@ -201,7 +143,7 @@ int arm_load_store_multiple(arm_core p, uint32_t ins) {
     if (u) {
         direction = 1;  
     }
-   else {
+    else {
         direction = -1;
     }
 
@@ -238,14 +180,27 @@ int arm_load_store_multiple(arm_core p, uint32_t ins) {
     }
 
     if (w) { //maj du reg apres le transfert
-        (p->reg)->registre[reg_base] = adresse + increment;
+        (p->reg)->registre[Rn] = adresse + increment;
     }
 
     return 0;
 }
 
+
+void read_write_coprocessor(int l, arm_core p, uint32_t adresse, uint8_t CRd, uint32_t *value){
+    if (l){ //load
+        arm_read_word(p, adresse, value);
+        arm_write_register(p, CRd, *value);
+    }
+    else { //store
+        arm_read_register(p, CRd);
+        arm_write_word(p, adresse, *value);
+    }
+}
+
+//page 490
 int arm_coprocessor_load_store(arm_core p, uint32_t ins) {
-    if(cond_respect(p, ins)){
+    if(cond_not_respect(p, ins)){
         return -1;
     }
     
@@ -253,11 +208,11 @@ int arm_coprocessor_load_store(arm_core p, uint32_t ins) {
     int u = get_bit(ins, 23);
     int w = get_bit(ins, 21);
     int l = get_bit(ins, 20);
-    uint8_t reg_base = get_bits(ins, 19, 16);
-    uint8_t dest_reg = get_bits(ins, 15, 12);
+    uint8_t Rn = get_bits(ins, 19, 16);
+    uint8_t CRd = get_bits(ins, 15, 12);
     //uint8_t coprocessor_num = get_bits(ins, 11, 8);
     uint32_t offset = get_bits(ins, 7, 0);
-    uint32_t adresse = (p->reg)->registre[reg_base];
+    uint32_t adresse = (p->reg)->registre[Rn];
     uint32_t *value = (uint32_t *)malloc(sizeof(uint32_t));
 
     if(p_bit == 0 && w == 0 && u == 0){ //cas spécial
@@ -269,51 +224,23 @@ int arm_coprocessor_load_store(arm_core p, uint32_t ins) {
     }
     
     if (p_bit == 0 && w == 0){
-        if (l){ //load
-            arm_read_word(p, adresse, value);
-            arm_write_register(p, dest_reg, *value);
-        }
-        else { //store
-            arm_read_register(p, dest_reg);
-            arm_write_word(p, adresse, *value);
-        }
+        read_write_coprocessor(l, p, adresse, CRd, *value);
         return 0;
     }
     else if(p_bit == 0 && w == 1){ // on peut réunir avec le else car la seule différence est entre arm_write_usr_register et arm_write_register
-        if (l){ //load
-            arm_read_word(p, adresse, value);
-            arm_write_register(p, dest_reg, *value);
-        }
-        else { //store
-            arm_read_register(p, dest_reg);
-            arm_write_word(p, adresse, *value);
-        }
-        (p->reg)->registre[reg_base] = (p->reg)->registre[reg_base] + offset;
+        read_write_coprocessor(l, p, adresse, CRd, *value);
+        (p->reg)->registre[Rn] += offset;
         return 0;
     }
     else if(p_bit == 1 && w == 0){
         adresse +=offset;
-        if (l){ //load
-            arm_read_word(p, adresse, value);
-            arm_write_register(p, dest_reg, *value);
-        }
-        else { //store
-            arm_read_register(p, dest_reg);
-            arm_write_word(p, adresse, *value);
-        }
+        read_write_coprocessor(l, p, adresse, CRd, *value);
         return 0;
     }
     else { // p == 1 et w == 1
         adresse += offset;
-        (p->reg)->registre[reg_base] = adresse;
-        if (l){ //load
-            arm_read_word(p, adresse, value);
-            arm_write_register(p, dest_reg, *value);
-        }
-        else { //store
-            arm_read_register(p, dest_reg);
-            arm_write_word(p, adresse, *value);
-        }
+        (p->reg)->registre[Rn] = adresse;
+        read_write_coprocessor(l, p, adresse, CRd, *value);
         return 0;
     }
 }
