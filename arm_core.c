@@ -1,24 +1,24 @@
 /*
-Armator - simulateur de jeu d'instruction ARMv5T à but pédagogique
+Armator - simulateur de jeu d'instruction ARMv5T ï¿½ but pï¿½dagogique
 Copyright (C) 2011 Guillaume Huard
 Ce programme est libre, vous pouvez le redistribuer et/ou le modifier selon les
-termes de la Licence Publique Générale GNU publiée par la Free Software
-Foundation (version 2 ou bien toute autre version ultérieure choisie par vous).
+termes de la Licence Publique Gï¿½nï¿½rale GNU publiï¿½e par la Free Software
+Foundation (version 2 ou bien toute autre version ultï¿½rieure choisie par vous).
 
-Ce programme est distribué car potentiellement utile, mais SANS AUCUNE
+Ce programme est distribuï¿½ car potentiellement utile, mais SANS AUCUNE
 GARANTIE, ni explicite ni implicite, y compris les garanties de
-commercialisation ou d'adaptation dans un but spécifique. Reportez-vous à la
-Licence Publique Générale GNU pour plus de détails.
+commercialisation ou d'adaptation dans un but spï¿½cifique. Reportez-vous ï¿½ la
+Licence Publique Gï¿½nï¿½rale GNU pour plus de dï¿½tails.
 
-Vous devez avoir reçu une copie de la Licence Publique Générale GNU en même
-temps que ce programme ; si ce n'est pas le cas, écrivez à la Free Software
+Vous devez avoir reï¿½u une copie de la Licence Publique Gï¿½nï¿½rale GNU en mï¿½me
+temps que ce programme ; si ce n'est pas le cas, ï¿½crivez ï¿½ la Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307,
-États-Unis.
+ï¿½tats-Unis.
 
 Contact: Guillaume.Huard@imag.fr
-	 Bâtiment IMAG
+	 Bï¿½timent IMAG
 	 700 avenue centrale, domaine universitaire
-	 38401 Saint Martin d'Hères
+	 38401 Saint Martin d'Hï¿½res
 */
 #include "arm_core.h"
 #include "registers.h"
@@ -203,4 +203,148 @@ int arm_write_word(arm_core p, uint32_t address, uint32_t value) {
     result = memory_write_word(p->mem, address, value, ENDIANESS);
     trace_memory(p->cycle_count, WRITE, 4, OTHER_ACCESS, address, value);
     return result;
+}
+
+int cond_not_respect(arm_core p, uint32_t ins){
+    // On s'occupe de la condition pour savoir si oui ou non elle est respectÃ©e
+	uint8_t cond = (uint8_t) get_bits(ins,31,28);
+	uint32_t cpsr = arm_read_cpsr(p);
+	uint8_t flagZ;
+	uint8_t flagN;
+	uint8_t flagC;
+	uint8_t flagV;
+	switch (cond)
+	{
+		case 0:  // On veut que Z=1 -> EQ
+			flagZ = (uint8_t) get_bit(cpsr,Z);
+			if ( flagZ == 0 )
+			{
+				return 1;
+			}
+			break;
+
+		case 1:  // On veut que Z=0 -> NE
+			flagZ = (uint8_t) get_bit(cpsr,Z);
+			if ( flagZ == 1 )
+			{
+				return 1;
+			}
+			break;
+
+		case 2:  // On veut que C=1 -> HS/ CS
+			flagC = (uint8_t) get_bit(cpsr,C);
+			if ( flagC == 0 )
+			{
+				return 1;
+			}
+			break;
+
+		case 3:  // On veut que C=0 -> LO/CC
+			flagC = (uint8_t) get_bit(cpsr,C);
+			if ( flagC == 1 )
+			{
+				return 1;
+			}
+			break;
+
+		case 4:  // on veut que N=1 -> MI
+			flagN = (uint8_t) get_bit(cpsr,N);
+			if ( flagN == 0 )
+			{
+				return 1;
+			}
+			break;
+
+		case 5:  // On veut que N=0 -> PL
+			flagN = (uint8_t) get_bit(cpsr,N);
+			if ( flagN == 0 )
+			{
+				return 1;
+			}
+			break;
+		
+		case 6: // On veut que V=1 -> VS
+			flagV = (uint8_t) get_bit(cpsr,V);
+			if ( flagV == 0 )
+			{
+				return 1;
+			}
+			break;
+
+		case 7: // On veut que V=0 -> VC
+			flagV = (uint8_t) get_bit(cpsr,V);
+			if ( flagV == 1 )
+			{
+				return 1;
+			}
+			break;
+
+		case 8: // On veut que C==1 && Z==0 -> HI
+			//flagZ = ~(get_bit(cpsr,C)) || (get_bit(cpsr,Z));
+			flagC = (uint8_t) get_bit(cpsr,C);
+			flagZ = (uint8_t) get_bit(cpsr,Z);
+			if ( flagC != 1 || flagZ != 0 )
+			{
+				return 1;
+			}
+			break;
+
+		case 9: // On veut que C==0 || Z==1 -> LS
+			flagC = (uint8_t) get_bit(cpsr,C);
+			flagZ = (uint8_t) get_bit(cpsr,Z);
+			if (flagC != 0 && flagZ != 1)
+			{
+				return 1;
+			}
+			break;
+
+		case 10: // On veut que N==V -> GE
+			flagN = (uint8_t) get_bit(cpsr,N);
+			flagV = (uint8_t) get_bit(cpsr,V);
+			if ( flagN != flagV )
+			{
+				return 1;
+			}
+			break;
+
+		case 11: // On veut que N!=V -> LT
+			flagN = (uint8_t) get_bit(cpsr,N);
+			flagV = (uint8_t) get_bit(cpsr,V);
+			if ( flagN == flagV )
+			{
+				return 1;
+			}
+			break;
+
+		case 12: // On veut que Z==0 && N == V -> GT
+			flagZ = (uint8_t) get_bit(cpsr,Z);
+			flagN = (uint8_t) get_bit(cpsr,N);
+			flagV = (uint8_t) get_bit(cpsr,V);
+			if ( flagZ != 0 || (flagN != flagV) )
+			{
+				return 1;
+			}
+			break;
+
+		case 13: // On veut que Z==1 || N!=V -> Le
+			flagZ = (uint8_t) get_bit(cpsr,Z);
+			flagN = (uint8_t) get_bit(cpsr,N);
+			flagV = (uint8_t) get_bit(cpsr,V);
+			if ( (flagZ =! 1) && (flagN == flagV) )
+			{
+				return 1;
+			}
+			break;
+
+		case 14: // Always -> AL
+			break;
+
+		case 15:
+            return UNDEFINED_INSTRUCTION;
+         // Never -> Ne
+        default: // just in case
+            return 1;
+
+	}
+    return 0;
 }
