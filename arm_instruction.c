@@ -33,28 +33,26 @@ int execute_instruction(arm_core p ){
 }
 
 static int arm_execute_instruction(arm_core p) {
-	uint32_t adr=0;
-	arm_fetch(p, &adr);
 	uint32_t ins ;
-	arm_read_word(p,adr,&ins);
+	arm_fetch(p, &ins);
 	ins=(ins>>25)&7;// 
 	switch(ins){
 	case 0: // 000
-		return arm_data_processing_shift(p, adr);
+		return arm_data_processing_shift(p, ins);
 	case 1: // 001
-		return arm_data_processing_immediate_msr(p, adr);
+		return arm_data_processing_immediate_msr(p, ins);
 	case 2: //01I avec I=0
-		return arm_load_store(p, adr);
+		return arm_load_store(p, ins);
 	case 3: //01I avec I=1
-		return arm_load_store(p, adr);
+		return arm_load_store(p, ins);
 	case 4: // 100
-		return arm_load_store_multiple(p, adr);
+		return arm_load_store_multiple(p, ins);
 	case 5: // 101
-		return arm_branch(p, adr);
+		return arm_branch(p, ins);
 	case 6: // 110
-		return arm_coprocessor_load_store(p, adr);
+		return arm_coprocessor_load_store(p, ins);
 	case 7: // 111
-		return arm_coprocessor_others_swi(p, adr);
+		return arm_coprocessor_others_swi(p, ins);
 	default:
 		return -1;
 	}
