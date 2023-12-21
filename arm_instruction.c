@@ -39,20 +39,28 @@ static int arm_execute_instruction(arm_core p) {
 	switch(ins){
 	case 0: // 000
 		return arm_data_processing_shift(p, ins);
+		break;
 	case 1: // 001
 		return arm_data_processing_immediate_msr(p, ins);
+		break;
 	case 2: //01I avec I=0
 		return arm_load_store(p, ins);
+		break;
 	case 3: //01I avec I=1
 		return arm_load_store(p, ins);
+		break;
 	case 4: // 100
 		return arm_load_store_multiple(p, ins);
+		break;
 	case 5: // 101
 		return arm_branch(p, ins);
+		break;
 	case 6: // 110
 		return arm_coprocessor_load_store(p, ins);
+		break;
 	case 7: // 111
 		return arm_coprocessor_others_swi(p, ins);
+		break;
 	default:
 		return -1;
 	}
