@@ -1,24 +1,24 @@
 /*
-Armator - simulateur de jeu d'instruction ARMv5T ‡ but pÈdagogique
+Armator - simulateur de jeu d'instruction ARMv5T ÔøΩ but pÔøΩdagogique
 Copyright (C) 2011 Guillaume Huard
 Ce programme est libre, vous pouvez le redistribuer et/ou le modifier selon les
-termes de la Licence Publique GÈnÈrale GNU publiÈe par la Free Software
-Foundation (version 2 ou bien toute autre version ultÈrieure choisie par vous).
+termes de la Licence Publique GÔøΩnÔøΩrale GNU publiÔøΩe par la Free Software
+Foundation (version 2 ou bien toute autre version ultÔøΩrieure choisie par vous).
 
-Ce programme est distribuÈ car potentiellement utile, mais SANS AUCUNE
+Ce programme est distribuÔøΩ car potentiellement utile, mais SANS AUCUNE
 GARANTIE, ni explicite ni implicite, y compris les garanties de
-commercialisation ou d'adaptation dans un but spÈcifique. Reportez-vous ‡ la
-Licence Publique GÈnÈrale GNU pour plus de dÈtails.
+commercialisation ou d'adaptation dans un but spÔøΩcifique. Reportez-vous ÔøΩ la
+Licence Publique GÔøΩnÔøΩrale GNU pour plus de dÔøΩtails.
 
-Vous devez avoir reÁu une copie de la Licence Publique GÈnÈrale GNU en mÍme
-temps que ce programme ; si ce n'est pas le cas, Ècrivez ‡ la Free Software
+Vous devez avoir reÔøΩu une copie de la Licence Publique GÔøΩnÔøΩrale GNU en mÔøΩme
+temps que ce programme ; si ce n'est pas le cas, ÔøΩcrivez ÔøΩ la Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307,
-…tats-Unis.
+ÔøΩtats-Unis.
 
 Contact: Guillaume.Huard@imag.fr
-	 B‚timent IMAG
+	 BÔøΩtiment IMAG
 	 700 avenue centrale, domaine universitaire
-	 38401 Saint Martin d'HËres
+	 38401 Saint Martin d'HÔøΩres
 */
 #ifndef __ARM_CORE_H__
 #define __ARM_CORE_H__
@@ -28,6 +28,11 @@ Contact: Guillaume.Huard@imag.fr
 #include "registers.h"
 #include "memory.h"
 
+struct arm_core_data {
+    uint32_t cycle_count;
+    registers reg;
+    memory mem;
+};
 typedef struct arm_core_data *arm_core;
 
 void arm_init();
@@ -54,6 +59,14 @@ int arm_read_word(arm_core p, uint32_t address, uint32_t * value);
 int arm_write_byte(arm_core p, uint32_t address, uint8_t value);
 int arm_write_half(arm_core p, uint32_t address, uint16_t value);
 int arm_write_word(arm_core p, uint32_t address, uint32_t value);
+
+// Specification: Test la condition
+// Prend en argument: arm_core p -> ensemble des registres
+//                    uint_32 ins -> instruction dans laquelle il faut tester la condition
+// Retourne: 0 si tout c'est pass√© sans probl√®me, 
+//			 1 s'il y a eu un probl√®me
+// Pas d'effets de bord
+int cond_not_respect(arm_core p, uint32_t ins);
 
 #include "trace_location.h"
 #endif

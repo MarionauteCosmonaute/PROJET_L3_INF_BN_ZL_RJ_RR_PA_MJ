@@ -205,7 +205,8 @@ int arm_write_word(arm_core p, uint32_t address, uint32_t value) {
     return result;
 }
 
-int cond_not_respect(arm_core p, uint32_t ins){
+int cond_not_respect(arm_core p, uint32_t ins)
+{
     // On s'occupe de la condition pour savoir si oui ou non elle est respectée
 	uint8_t cond = (uint8_t) get_bits(ins,31,28);
 	uint32_t cpsr = arm_read_cpsr(p);

@@ -75,7 +75,7 @@ uint32_t Effectuer_Decalage(int decalage, int val, uint32_t r)
 	return (r>>val) | (r<<32-val);
 }
 
-void Update_Flags(uint64_t temp, arm_core p, int bit_S, uint32_t Rd_num)
+int Update_Flags(uint64_t temp, arm_core p, int bit_S, uint32_t Rd_num)
 {
 	if (bit_S == 1 && Rd_num == 15)	
 	{
@@ -85,8 +85,7 @@ void Update_Flags(uint64_t temp, arm_core p, int bit_S, uint32_t Rd_num)
 		}
 		else
 		{
-			printf("Problème! Nous nous n'avons pas le bon mode\n");
-			return;
+			return UNDEFINED_INSTRUCTION;
 		}
 	}
 	else if (bit_S == 1) // On actualise les flags
@@ -139,9 +138,10 @@ void Update_Flags(uint64_t temp, arm_core p, int bit_S, uint32_t Rd_num)
 			arm_write_cpsr(p, (cpsr  & masque_flagV));
 		}
 	}
+	return 0;
 }
 
-void Effectuer_Operation(int opeCode, uint32_t Rn, uint32_t operande2, arm_core p, uint32_t ins)
+int Effectuer_Operation(int opeCode, uint32_t Rn, uint32_t operande2, arm_core p, uint32_t ins)
 {
 	uint32_t res;
 	uint64_t temp;
@@ -158,67 +158,70 @@ void Effectuer_Operation(int opeCode, uint32_t Rn, uint32_t operande2, arm_core 
 	int bit_poids_fort; // On veut récupèrer le bit de poids fort du résultat
 	int bit_S = (int) get_bit(ins,20);
 
+	int pb;
+
 	switch (opeCode)
 	{
 		case 0:	// AND 0000 Rd <= Rn AND operande2
 			res = (Rn & operande2);
 			arm_write_register(p, Rd_num, res);
 			// p159 doc arm
-			Update_Flags((uint64_t) res,p,bit_S,Rd_num);
-			return;
+			pb = Update_Flags((uint64_t) res,p,bit_S,Rd_num);
+			return pb;
 
 		case 1:	// EOR 0001 Rd <= Rn XOR operande2
 			res = (Rn ^ operande2);
 			arm_write_register(p, Rd_num, res);
 			// p183 doc arm
-			Update_Flags((uint64_t) res,p,bit_S,Rd_num);
-			return;
+			pb = Update_Flags((uint64_t) res,p,bit_S,Rd_num);
+			return pb;
 
 		case 2:	// SUB 0010 Rd <= Rn - operande2
 			res = (Rn - operande2);
 			arm_write_register(p, Rd_num, res);
 			// p359 doc arm
-			Update_Flags((uint64_t) res,p,bit_S,Rd_num);
-			return;
+			pb = Update_Flags((uint64_t) res,p,bit_S,Rd_num);
+			return pb;
 
 		case 3:	// RSB 0010 Rd <= operande2 - Rn
 			res = (operande2 - Rn);
 			arm_write_register(p, Rd_num, res);
 			// p266 doc arm
-			Update_Flags((uint64_t) res,p,bit_S,Rd_num);
-			return;
+			pb = Update_Flags((uint64_t) res,p,bit_S,Rd_num);
+			return pb;
 
 		case 4:	// ADD 0100 Rd <= Rn + operande2
 			res = (Rn + operande2);
 			arm_write_register(p, Rd_num, res);
 			// p157 doc arm
-			Update_Flags((uint64_t) res,p,bit_S,Rd_num);
-			return;
+			pb = Update_Flags((uint64_t) res,p,bit_S,Rd_num);
+			return pb;
 
 		case 5:	// ADC 0101 Rd <= Rn + operande2 + C
 			res = (Rn + operande2 + flagC);
 			arm_write_register(p, Rd_num, res);
 			// p155 doc arm
-			Update_Flags((uint64_t) res,p,bit_S,Rd_num);
-			return;
+			pb = Update_Flags((uint64_t) res,p,bit_S,Rd_num);
+			return pb;
 
 		case 6:	// SBC 0110 Rd <= Rn - operande2 + C - 1
 			res = (Rn - operande2 + flagC - 1);
 			arm_write_register(p, Rd_num, res);
 			// p276 doc arm
-			Update_Flags((uint64_t) res,p,bit_S,Rd_num);
-			return;  
+			pb = Update_Flags((uint64_t) res,p,bit_S,Rd_num);
+			return pb;  
 
 		case 7:	// RSC 0111 Rd <= operande2- Rn + C - 1
 			res = (operande2 - Rn + flagC - 1);
 			arm_write_register(p, Rd_num, res);
 			// p268 doc arm
-			
-			return;  
+			pb = Update_Flags((uint64_t) res,p,bit_S,Rd_num);
+			return pb;  
 
 		case 8:	// TST 1000 Positionne les flags pour Rn AND Operande2
 			res = Rn & operande2;
-
+			// p380 doc arm
+			
 			//Z
 			if ( res == 0 ) // Z = 1
 			{
@@ -239,10 +242,11 @@ void Effectuer_Operation(int opeCode, uint32_t Rn, uint32_t operande2, arm_core 
 			{
 				arm_write_cpsr(p, (cpsr & masque_flagN)); // Le masque était 0111 1111 1111 1111 1111 1111 1111 1111: on force la mise à 0 du bitN
 			}
-			return;  
+			return 0;  
 
 		case 9:	// TEQ 1001 Positionne les flags pour Rn XOR Operande2
 			res = Rn ^ operande2;
+			// p378 doc arm
 
 			//Z
 			if ( res == 0 ) // Z = 1
@@ -264,11 +268,12 @@ void Effectuer_Operation(int opeCode, uint32_t Rn, uint32_t operande2, arm_core 
 			{
 				arm_write_cpsr(p, (cpsr & masque_flagN)); // Le masque était 0111 1111 1111 1111 1111 1111 1111 1111: on force la mise à 0 du bitN
 			}			
-			return;  
+			return 0;  
 
 		case 10: // CMP 1010 Positionne les flags pour Rn - Operande2
 			temp = (uint64_t) Rn - (uint64_t)operande2;
 			res = (uint32_t) get_bits(temp,31,0);
+			// p178 doc arm
 
 			//Z
 			if ( temp == 0 ) // Z = 1
@@ -308,11 +313,12 @@ void Effectuer_Operation(int opeCode, uint32_t Rn, uint32_t operande2, arm_core 
 			else{
 				arm_write_cpsr(p, (cpsr  & masque_flagV));
 			}
-			return;  
+			return 0;  
 
 		case 11: // CMN 1011 Positionne les flags pour Rn + Operande2
 			temp = (uint64_t) Rn + (uint64_t)operande2;
 			res = (uint32_t) get_bits(temp,31,0);
+			// p176 doc arm
 			
 			//Z
 			if ( temp == 0 ) // Z = 1
@@ -352,26 +358,38 @@ void Effectuer_Operation(int opeCode, uint32_t Rn, uint32_t operande2, arm_core 
 			else{
 				arm_write_cpsr(p, (cpsr  & masque_flagV));
 			}
-			return;
+			return 0;
 
 		case 12: // ORR 1100 Rd <= Rn OR opérande2
-			arm_write_register(p, Rd_num, (Rn | operande2));
-			return;  
+			res = (Rn | operande2);
+			arm_write_register(p, Rd_num, res);
+			// p235 doc arm
+			pb = Update_Flags((uint64_t) res,p,bit_S,Rd_num);
+			return pb;  
 
 		case 13: // MOV Rd <= opérande2
-			arm_write_register(p, Rd_num, operande2);
-			return;  
+			res = operande2;
+			arm_write_register(p, Rd_num, res);
+			// p219 doc arm
+			pb = Update_Flags((uint64_t) res,p,bit_S,Rd_num);
+			return pb;  
 
 		case 14: // BIC Rd <= Rn AND NOT opérande2
-			arm_write_register(p, Rd_num, (Rn & (~operande2)));
-			return;  
+			res = (Rn & (~operande2));
+			arm_write_register(p, Rd_num, res);
+			// p163 doc arm
+			pb = Update_Flags((uint64_t) res,p,bit_S,Rd_num);
+			return pb;  
 
 		case 15: // MVN Rd <= NOT opérande2
-			arm_write_register(p, Rd_num, (~operande2));
-			return;    
+			res = (~operande2);
+			arm_write_register(p, Rd_num, res);
+			// p233 doc arm
+			pb = Update_Flags((uint64_t) res,p,bit_S,Rd_num);
+			return pb;    
 		
 		default:	//On ne fait rien
-			return;
+			return 1;	// Nous ne sommes pas sencé arriver dans ce cas
 	}
 }
 
@@ -379,19 +397,18 @@ int arm_data_processing_shift(arm_core p, uint32_t ins)	// Le 25ième bit i éga
 {
 	if (cond_not_respect(p, ins))
 	{
-		return -1;
+		return 1;
 	}
 
 	// La condition est respectée on continue
 	// On s'occupe de notre 2nd opérande --> 	Comme bit_I = 0  Nous avons à faire à une valeur présente dans un registre: Le registre est situé dans les bits 0 à 3 et est utilisé comme 2nd opérande. Les bits 4 à 11 déterminent le décalage
 
-	uint8_t bit_4 = (uint8_t) get_bit(ins,4);
-
 	uint8_t Rm_num = (uint8_t) get_bits(ins,3,0); // Je récupère le numéro du registre Rm qui correspond au registre utilisé comme second opérande.
-	uint32_t Rm_valeur = (p->reg)->registre[Rm_num]; // Je socke la valeur contenue dans Rm
+	uint32_t Rm_valeur = arm_read_register(p, Rm_num); // Je socke la valeur contenue dans Rm
 	int decalage = Determiner_Decalage(get_bit(ins,6),get_bit(ins,5));	//Type de décalage
 	int valeur; // Valeur du décalage
 
+	uint8_t bit_4 = (uint8_t) get_bit(ins,4);
 	// La valeur du bit 4 permet de savoir si la valeur du décalage est donné dans un registre (bit4 = 1) ou par valeur immédiate (bit4 = 0) 
 	if ( bit_4 == 0 ) // La valeur immédiate du décalge se trouve dans les bits 7 à 11.
 	{
@@ -400,7 +417,7 @@ int arm_data_processing_shift(arm_core p, uint32_t ins)	// Le 25ième bit i éga
 	else // bit_4 == 1		La valeur du décalage correspond au 5 bits de poids faible du registre qui a pour numero les bits 8 à 11.
 	{
 		uint8_t Rs_num = (uint8_t) get_bits(ins,11,8); // Je récupère le numéro du registre Rs.
-		uint32_t Rs_valeur = (p->reg)->registre[Rs_num]; // Je socke la valeur contenue dans Rm
+		uint32_t Rs_valeur = arm_read_register(p,Rs_num); // Je socke la valeur contenue dans Rs
 		valeur = (int) get_bits(Rs_valeur,4,0);	//Je récupère les 5 bits de poids faible de Rs
 	}
 	Rm_valeur = Effectuer_Decalage(decalage, valeur ,Rm_valeur);
@@ -408,11 +425,22 @@ int arm_data_processing_shift(arm_core p, uint32_t ins)	// Le 25ième bit i éga
 	//Notre 2nd opérande est à jour
 	//Actuellement stocké dans la VARIABLE Rm_valeur (uint32_t)
 
-    return UNDEFINED_INSTRUCTION;
+	int opCode = (int) get_bits(ins,24,21);
+	uint8_t Rn_num = (uint_8) get_bits(ins,19,16);
+	uint32_t Rn_valeur = arm_read_register(p,Rn_num);
+	int pb = Effectuer_Operation(opCode, Rn_valeur, Rm_valeur, p, ins);
+
+    return pb;
 }
 
 int arm_data_processing_immediate_msr(arm_core p, uint32_t ins) // Le 25ième bit i égal 1
 {
+	if (cond_not_respect(p, ins))
+	{
+		return 1;
+	}
+
+	// La condition est respectée on continue
 	// bit_I == 1 	Les bits 0 à 7 correspondent à la valeur utilisée comme second opérande et les bits 8 à 11 correspondent au décalage (icic Rotation) appliquée à cette valeur.
 	
 	uint8_t valeur_I = (uint8_t) get_bits(ins,7,0); // Je récupère la valeur de l'immédiat I utilisée comme second opérande
@@ -420,6 +448,11 @@ int arm_data_processing_immediate_msr(arm_core p, uint32_t ins) // Le 25ième bi
 	valeur_I = (valeur_I>>valeur) | (valeur_I<<8-valeur); // On effectue une rotation sur 8 bits donc on n'utilise pas la fonction Effectuer_Decalage()
 	// Notre 2nd opérande est à jour
 	// Actuellement stocké dans la Variable valeur_i (uint8_t)
+
+	int opCode = (int) get_bits(ins,24,21);
+	uint8_t Rn_num = (uint_8) get_bits(ins,19,16);
+	uint32_t Rn_valeur = arm_read_register(p,Rn_num);
+	int pb = Effectuer_Operation(opCode, Rn_valeur, (uint32_t) valeur_I, p, ins);
 	
-    return UNDEFINED_INSTRUCTION;
+    return pb;
 }
