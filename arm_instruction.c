@@ -29,10 +29,11 @@ Contact: Guillaume.Huard@imag.fr
 #include "util.h"
 
 static int arm_execute_instruction(arm_core p) {
-	uint32_t ins = (p->reg)->registre[15];
-	int test = (ins>>25)&7;
+	uint32_t ins;
 	arm_fetch(p, &ins);
-	switch(test){
+	int function_to_use;
+	function_to_use = (ins>>25)&7;
+	switch(function_to_use){
 	case 0:
 		return arm_data_processing_shift(p, ins);
 	case 1:
