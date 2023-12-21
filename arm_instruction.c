@@ -28,11 +28,15 @@ Contact: Guillaume.Huard@imag.fr
 #include "arm_constants.h"
 #include "util.h"
 
-static int arm_execute_instruction(arm_core p) {
-	uint32_t ins = (p->reg)->registre[15];
-	int test = (ins>>25)&7;
-	arm_fetch(p, &ins);
-	switch(test){
+int arm_execute_instruction(arm_core p) {
+	uint32_t adr;
+	arm_fetch(p, &adr);
+	uint32_t ins;
+	printf("%d\n",adr);
+	arm_read_word(p, adr, &ins);
+	int function_to_use;
+	function_to_use = (ins>>25)&7;
+	switch(function_to_use){
 	case 0:
 		return arm_data_processing_shift(p, ins);
 	case 1:
