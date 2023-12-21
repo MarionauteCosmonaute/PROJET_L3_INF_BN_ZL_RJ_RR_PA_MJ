@@ -426,7 +426,7 @@ int arm_data_processing_shift(arm_core p, uint32_t ins)	// Le 25ième bit i éga
 	//Actuellement stocké dans la VARIABLE Rm_valeur (uint32_t)
 
 	int opCode = (int) get_bits(ins,24,21);
-	uint8_t Rn_num = (uint_8) get_bits(ins,19,16);
+	uint8_t Rn_num = (uint8_t) get_bits(ins,19,16);
 	uint32_t Rn_valeur = arm_read_register(p,Rn_num);
 	int pb = Effectuer_Operation(opCode, Rn_valeur, Rm_valeur, p, ins);
 
@@ -450,7 +450,7 @@ int arm_data_processing_immediate_msr(arm_core p, uint32_t ins) // Le 25ième bi
 	// Actuellement stocké dans la Variable valeur_i (uint8_t)
 
 	int opCode = (int) get_bits(ins,24,21);
-	uint8_t Rn_num = (uint_8) get_bits(ins,19,16);
+	uint8_t Rn_num = (uint8_t) get_bits(ins,19,16);
 	uint32_t Rn_valeur = arm_read_register(p,Rn_num);
 	int pb = Effectuer_Operation(opCode, Rn_valeur, (uint32_t) valeur_I, p, ins);
 	
