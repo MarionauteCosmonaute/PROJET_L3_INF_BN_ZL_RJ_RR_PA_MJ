@@ -33,11 +33,12 @@ int execute_instruction(arm_core p ){
 }
 
 static int arm_execute_instruction(arm_core p) {
-	uint32_t ins ;
+	uint32_t ins;
 	arm_fetch(p, &ins);
-	ins=(ins>>25)&7;// 
-	switch(ins){
-	case 0: // 000
+	int function_to_use;
+	function_to_use = (ins>>25)&7;
+	switch(function_to_use){
+	case 0:
 		return arm_data_processing_shift(p, ins);
 		break;
 	case 1: // 001
