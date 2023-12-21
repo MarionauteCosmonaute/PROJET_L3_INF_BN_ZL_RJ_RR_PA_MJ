@@ -28,27 +28,33 @@ Contact: Guillaume.Huard@imag.fr
 #include "arm_constants.h"
 #include "util.h"
 
+int execute_instruction(arm_core p ){
+	arm_execute_instruction(p);
+}
+
 static int arm_execute_instruction(arm_core p) {
-	uint32_t ins=0;
-	arm_fetch(p, &ins);
-	int test = (ins>>25)&7;
-	switch(test){
-	case 0:
-		return arm_data_processing_shift(p, ins);
-	case 1:
-		return arm_data_processing_immediate_msr(p, ins);
-	case 2:
-		return arm_load_store(p, ins);
-	case 3:
-		return arm_load_store(p, ins);
-	case 4:
-		return arm_load_store_multiple(p, ins);
-	case 5:
-		return arm_branch(p, ins);
-	case 6:
-		return arm_coprocessor_load_store(p, ins);
-	case 7:
-		return arm_coprocessor_others_swi(p, ins);
+	uint32_t adr=0;
+	arm_fetch(p, &adr);
+	int ins ;
+	arm_read_word(p,adr,&ins);
+	ins=(ins>>25)&7;// 
+	switch(ins){
+	case 0: // 000
+		return arm_data_processing_shift(p, adr);
+	case 1: // 001
+		return arm_data_processing_immediate_msr(p, adr);
+	case 2: //01I avec I=0
+		return arm_load_store(p, adr);
+	case 3: //01I avec I=1
+		return arm_load_store(p, adr);
+	case 4: // 100
+		return arm_load_store_multiple(p, adr);
+	case 5: // 101
+		return arm_branch(p, adr);
+	case 6: // 110
+		return arm_coprocessor_load_store(p, adr);
+	case 7: // 111
+		return arm_coprocessor_others_swi(p, adr);
 	default:
 		return -1;
 	}
