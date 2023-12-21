@@ -11,6 +11,12 @@
 #include "util.h"
 #include "arm_constants.h"
 
+void print_test(int result) {
+    if (result)
+        printf("Test succeded\n");
+    else
+        printf("TEST FAILED !!\n");
+}
 
 int main() {
 	registers r;
@@ -20,7 +26,6 @@ int main() {
 	srandom(getpid());
 	m = memory_create(0x8000); //Memoire allouée
 	r = registers_create();
-	printf("MEMOIRE TOTAL = %ld\n",memory_get_size(m));
 	registers_write_cpsr(r, 0x1d3);
 	uint8_t mode = registers_get_mode(r);
 	registers_write(r, 15, mode, 0);
@@ -37,35 +42,35 @@ int main() {
 		switch(j){
 		case 0:
 			printf("Cas 0 :\n");
-			arm_execute_instruction(a);
+			print_test(arm_data_processing_shift(a, 0) == arm_execute_instruction(a));
 			break;
 		case 1:
 			printf("Cas 1:\n");
-			arm_execute_instruction(a);
+			print_test(arm_data_processing_immediate_msr(a, 0) == arm_execute_instruction(a));
 			break;
 		case 2:
 			printf("Cas 2:\n");
-			arm_execute_instruction(a);
+			print_test(arm_load_store(a, 0) == arm_execute_instruction(a));
 			break;
 		case 3:
 			printf("Cas 3:\n");
-			arm_execute_instruction(a);
+			print_test(arm_load_store(a, 0) == arm_execute_instruction(a));
 			break;
 		case 4:
 			printf("Cas 4:\n");
-			arm_execute_instruction(a);
+			print_test(arm_load_store_multiple(a, 0) == arm_execute_instruction(a));
 			break;
 		case 5:
 			printf("Cas 5:\n");
-			arm_execute_instruction(a);
+			print_test(arm_branch(a, 0) == arm_execute_instruction(a));
 			break;
 		case 6:
 			printf("Cas 6:\n");
-			arm_execute_instruction(a);
+			print_test(arm_coprocessor_load_store(a, 0) == arm_execute_instruction(a));
 			break;
 		case 7:
 			printf("Cas 7:\n");
-			arm_execute_instruction(a);
+			print_test(arm_coprocessor_others_swi(a, 0) == arm_execute_instruction(a));
 			break;
 		default:
 			printf("default");

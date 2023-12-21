@@ -29,11 +29,9 @@ Contact: Guillaume.Huard@imag.fr
 #include "util.h"
 
 int arm_execute_instruction(arm_core p) {
-	uint32_t adr;
-	arm_fetch(p, &adr);
 	uint32_t ins;
-	printf("%d\n",adr);
-	arm_read_word(p, adr, &ins);
+	arm_fetch(p, &ins);
+	printf("%d\n",ins);
 	int function_to_use;
 	function_to_use = (ins>>25)&7;
 	switch(function_to_use){
