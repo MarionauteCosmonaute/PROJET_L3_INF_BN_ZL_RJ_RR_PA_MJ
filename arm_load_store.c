@@ -417,7 +417,6 @@ int arm_load_store_multiple(arm_core p, uint32_t ins) {
 }
 */
 
-
 int arm_load_store_multiple(arm_core p, uint32_t ins) {
     int p_bit = get_bit(ins, 24);
     int u = get_bit(ins, 23);
