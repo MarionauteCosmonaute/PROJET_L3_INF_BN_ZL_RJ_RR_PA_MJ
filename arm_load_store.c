@@ -178,7 +178,7 @@ int arm_load_store_multiple(arm_core p, uint32_t ins) {
         if (get_bit(ins, reg_num)) {
             if (l) { // Load
                 if(reg_num == 15 && s == 1){
-                    arm_write_cpsr(p, arm_read_spsr(p))
+                    arm_write_cpsr(p, arm_read_spsr(p));
                     val_pc = arm_read_cpsr(p);
                     arm_write_register(p, reg_num, val_pc);
                 }

@@ -35,7 +35,7 @@ int execute_instruction(arm_core p ){
 static int arm_execute_instruction(arm_core p) {
 	uint32_t adr=0;
 	arm_fetch(p, &adr);
-	int ins ;
+	uint32_t ins ;
 	arm_read_word(p,adr,&ins);
 	ins=(ins>>25)&7;// 
 	switch(ins){
