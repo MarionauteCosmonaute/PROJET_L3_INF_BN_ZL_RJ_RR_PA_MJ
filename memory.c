@@ -25,10 +25,6 @@ Contact: Guillaume.Huard@imag.fr
 #include "memory.h"
 #include "util.h"
 
-struct memory_data {
-    size_t size;
-    uint8_t *data;
-};
 /*Initialize memory access*/
 memory memory_create(size_t size) {
     memory mem = malloc(sizeof(struct memory_data));
