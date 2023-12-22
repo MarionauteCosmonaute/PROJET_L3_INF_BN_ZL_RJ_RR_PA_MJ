@@ -62,32 +62,7 @@ int arm_load_store(arm_core p, uint32_t ins) {
             uint8_t shift_imm = get_bits(ins, 11, 7); //val qu'on va utiliser pour décaler la valeur d'offset            
 
             if(get_bit(ins, 4)) return UNDEFINED_INSTRUCTION; //est indiqué à 0 dans la doc
-            //page 445
-            //à voir si les opérations sont faites autres part
-            switch(shift_op) {
-                case LSL: //Logical shift left 
-                    offset = Rm_value << shift_imm;
-                    break;
-                case LSR: //Logical shift right
-                    offset = (shift_imm == 0) ? 0 : (Rm_value >> shift_imm);
-                    break;
-                case ASR: //Arithmetic shift right
-                    offset = asr(Rm_value, shift_imm);
-                    break;
-                case ROR: { // Rotate right, shift_imm==0, RRX Rotate right with extend
-                    if(shift_imm == 0){
-                        // bit de retenue sortante
-                        int carry = get_bit(arm_read_cpsr(p), C);
-                        offset = ((carry << 31) | (Rm_value >> 1));
-                    } 
-                    else{
-                        offset = ror(Rm_value, shift_imm); 
-                    }
-                    break;
-                }
-                default:
-                    return UNDEFINED_INSTRUCTION;
-            }
+            offset = Effectuer_Decalage(shift_op, shift_imm, Rm_value); //page 445 
         } 
         else{//si valeur immédiate
             offset = get_bits(ins, 11, 0);
@@ -229,7 +204,7 @@ int arm_load_store_multiple(arm_core p, uint32_t ins) {
     int w = get_bit(ins, 21);
     int l = get_bit(ins, 20);
     uint8_t Rn = get_bits(ins, 19, 16);
-    uint16_t list_registers = get_bits(ins, 15, 0);
+    uint16_t list_reg= get_bits(ins, 15, 0);
     uint32_t value;
     int result;
     uint32_t adresse = arm_read_register(p, Rn);
@@ -237,14 +212,14 @@ int arm_load_store_multiple(arm_core p, uint32_t ins) {
     if(p_bit){ // incrementation ou decrementation en fonction de u
         adresse += u ? 4 : -4;
     }
-    if (list_registers == 0){
+    if (list_reg == 0){
         return UNDEFINED_INSTRUCTION;
     }
     
     if(!s) { //si s==1 on part sur LDMs
         if(l) { //LDM(1)
             for(int reg_num = 0; reg_num < 15; reg_num++){ //on veut pas 15 car sinon c'est la PC
-                if(get_bit(list_registers, reg_num)) {
+                if(get_bit(list_reg, reg_num)) {
                     result = arm_read_word(p, adresse, &value);
                     if(result == -1){
                         return DATA_ABORT;
@@ -254,14 +229,14 @@ int arm_load_store_multiple(arm_core p, uint32_t ins) {
                 }
             }
 
-            if(get_bit(list_registers, 15)) {
+            if(get_bit(list_reg, 15)) {
                 //pas trouvé si cas spé pour la PC, car on a pas S==1 donc pas le truc avec CPSR etc
             }
 
         } 
         else { //STM(1)
             for(int reg_num = 0; reg_num <= 15; reg_num++) {
-                if(get_bit(register_list, reg_num)) {
+                if(get_bit(list_reg, reg_num)) {
                     value = arm_read_register(p, reg_num);
                     result = arm_write_word(p, adresse, value);
                     if(result == -1) {
@@ -336,7 +311,7 @@ int arm_coprocessor_load_store(arm_core p, uint32_t ins) {
         read_write_coprocessor(l, p, adresse, CRd, *value);
         return 0;
     }
-    else if(p_bit == 0 && w == 1){ // on peut réunir avec le else car la seule différence est entre arm_write_usr_register et arm_write_register
+    else if(p_bit == 0 && w == 1){
         read_write_coprocessor(l, p, adresse, CRd, *value);
         (p->reg)->registre[Rn] += offset;
         return 0;
