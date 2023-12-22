@@ -59,6 +59,7 @@ uint32_t Effectuer_Decalage(int decalage, int val, uint32_t r)
 	if ( decalage == ASR ) // On veut insérer "val" fois le bit 31 à la position 31 (en poussant les bits de poids faibles)
 	{
 		uint8_t bit_31 = get_bit(r, 31);
+
 		for(int i=0; i<val; i++){
 			if ( bit_31 == 1 )
 			{
@@ -90,7 +91,7 @@ int Update_Flags(uint64_t temp, arm_core p, int bit_S, uint32_t Rd_num)
 	}
 	else if (bit_S == 1) // On actualise les flags
 	{
-		uint32_t res = (uint32_t) get_bits(temp,31,0);
+		uint32_t res = (uint32_t)temp;
 		uint32_t cpsr = arm_read_cpsr(p); // Contenu du registre
 		uint32_t masque_flagN = ~(1<<31);
 		uint32_t masque_flagZ= ~(1<<30);
@@ -272,7 +273,7 @@ int Effectuer_Operation(int opeCode, uint32_t Rn, uint32_t operande2, arm_core p
 
 		case 10: // CMP 1010 Positionne les flags pour Rn - Operande2
 			temp = (uint64_t) Rn - (uint64_t)operande2;
-			res = (uint32_t) get_bits(temp,31,0);
+			res = (uint32_t)temp;
 			// p178 doc arm
 
 			//Z
@@ -317,7 +318,7 @@ int Effectuer_Operation(int opeCode, uint32_t Rn, uint32_t operande2, arm_core p
 
 		case 11: // CMN 1011 Positionne les flags pour Rn + Operande2
 			temp = (uint64_t) Rn + (uint64_t)operande2;
-			res = (uint32_t) get_bits(temp,31,0);
+			res = (uint32_t) temp;
 			// p176 doc arm
 			
 			//Z
@@ -445,7 +446,7 @@ int arm_data_processing_immediate_msr(arm_core p, uint32_t ins) // Le 25ième bi
 	
 	uint8_t valeur_I = (uint8_t) get_bits(ins,7,0); // Je récupère la valeur de l'immédiat I utilisée comme second opérande
 	int valeur = (int) get_bits(ins,11,8);	// On récupère la valeur du décalage
-	valeur_I = (valeur_I>>valeur) | (valeur_I<<8-valeur); // On effectue une rotation sur 8 bits donc on n'utilise pas la fonction Effectuer_Decalage()
+	valeur_I = (valeur_I>>valeur) | (valeur_I<<(8-valeur)); // On effectue une rotation sur 8 bits donc on n'utilise pas la fonction Effectuer_Decalage()
 	// Notre 2nd opérande est à jour
 	// Actuellement stocké dans la Variable valeur_i (uint8_t)
 
