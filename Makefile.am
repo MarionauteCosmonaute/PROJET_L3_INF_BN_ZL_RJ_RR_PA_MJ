@@ -36,6 +36,5 @@ send_irq_SOURCES=send_irq.c csapp.h csapp.c arm_constants.h arm_constants.c
 
 memory_test_SOURCES=memory_test.c memory.h memory.c util.h util.c
 registers_test_SOURCES=registers_test.c registers.h registers.c util.h util.c arm_constants.h arm_constants.c
-data_test_SOURCES = $(COMMON) data_test.c
 
 EXTRA_DIST=gdb_commands make_trace.sh License
