@@ -64,6 +64,16 @@ int memory_read_half(memory mem, uint32_t address, uint16_t *value, uint8_t be) 
         printf("Adresse fournie incorrecte, hors de la plage de valeur\n");
         return -1;
     }
+    uint16_t tmp = mem->data[address+1] +(mem->data[address]<<8);
+    if (be) { //si en big endian
+        *value = tmp;  
+    } 
+    else {
+        *value = reverse_2(tmp);
+    }
+    return 0;
+}
+
 
     uint16_t tmp = mem->data[address+1] +(mem->data[address]<<8);
     if (be) { //si en big endian
