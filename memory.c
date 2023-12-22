@@ -74,16 +74,6 @@ int memory_read_half(memory mem, uint32_t address, uint16_t *value, uint8_t be) 
     return 0;
 }
 
-
-    uint16_t tmp = mem->data[address+1] +(mem->data[address]<<8);
-    if (be) { //si en big endian
-        *value = tmp;  
-    } 
-    else {
-        *value = reverse_2(tmp);
-    }
-    return 0;
-}
     
 /*Reads a word at the given address in the given memory, stores it at value, returns 0 if everything went well, -1 otherwise*/
 int memory_read_word(memory mem, uint32_t address, uint32_t *value, uint8_t be) {
