@@ -48,11 +48,11 @@ int Determiner_Decalage(int bit6, int bit5)
 
 uint32_t Effectuer_Decalage(int decalage, int val, uint32_t r)
 {
-	if ( decalage == LSL ) // On ajoute "val" 0 aux bits de poids faibles 10110010 <--0
+	if ( decalage == LSL ) // On ajoute "val" aux bits de poids faibles 10110010 <--0
 	{
 		return r<<val;
 	}
-	if ( decalage == LSR ) // On ajoute "val" 0 aux bits de poids forts 0 --> 01010011
+	if ( decalage == LSR ) // On ajoute "val" aux bits de poids forts 0 --> 01010011
 	{
 		return r>>val;
 	}
@@ -61,18 +61,20 @@ uint32_t Effectuer_Decalage(int decalage, int val, uint32_t r)
 		uint8_t bit_31 = get_bit(r, 31);
 		if ( bit_31 == 1 )
 		{
+			printf("cas 1\n");
 			uint32_t masque = 0;
 			masque = ~masque;
-			masque<<32-val;
+			masque = masque<<(32-val);
 			return r>>val | masque;
 		}
 		else
 		{
+			printf("cas 2\n");
 			return r>>val;
 		}
 	}
-	// 	if ( decalage == ROR ) //On veut effectuer une rotation par la droite: que les "val" de poids faibles re-rentrent et poussent les "val" bits de poids forts.
-	return (r>>val) | (r<<32-val);
+	// 	if ( decalage == ROR ) //On veut effectuer une rotation par la droite: que les "val" de poids faibles re-rentrent et poussent les "val" bits de poids forts 
+	return (r>>val) | (r<<(32-val));
 }
 
 int Update_Flags(uint64_t temp, arm_core p, int bit_S, uint32_t Rd_num)
@@ -90,7 +92,7 @@ int Update_Flags(uint64_t temp, arm_core p, int bit_S, uint32_t Rd_num)
 	}
 	else if (bit_S == 1) // On actualise les flags
 	{
-		uint32_t res = (uint32_t) get_bits(temp,31,0);
+		uint32_t res = (uint32_t)temp;
 		uint32_t cpsr = arm_read_cpsr(p); // Contenu du registre
 		uint32_t masque_flagN = ~(1<<31);
 		uint32_t masque_flagZ= ~(1<<30);
@@ -272,7 +274,7 @@ int Effectuer_Operation(int opeCode, uint32_t Rn, uint32_t operande2, arm_core p
 
 		case 10: // CMP 1010 Positionne les flags pour Rn - Operande2
 			temp = (uint64_t) Rn - (uint64_t)operande2;
-			res = (uint32_t) get_bits(temp,31,0);
+			res = (uint32_t)temp;
 			// p178 doc arm
 
 			//Z
@@ -317,7 +319,7 @@ int Effectuer_Operation(int opeCode, uint32_t Rn, uint32_t operande2, arm_core p
 
 		case 11: // CMN 1011 Positionne les flags pour Rn + Operande2
 			temp = (uint64_t) Rn + (uint64_t)operande2;
-			res = (uint32_t) get_bits(temp,31,0);
+			res = (uint32_t) temp;
 			// p176 doc arm
 			
 			//Z
@@ -445,7 +447,7 @@ int arm_data_processing_immediate_msr(arm_core p, uint32_t ins) // Le 25ième bi
 	
 	uint8_t valeur_I = (uint8_t) get_bits(ins,7,0); // Je récupère la valeur de l'immédiat I utilisée comme second opérande
 	int valeur = (int) get_bits(ins,11,8);	// On récupère la valeur du décalage
-	valeur_I = (valeur_I>>valeur) | (valeur_I<<8-valeur); // On effectue une rotation sur 8 bits donc on n'utilise pas la fonction Effectuer_Decalage()
+	valeur_I = (valeur_I>>valeur) | (valeur_I<<(8-valeur)); // On effectue une rotation sur 8 bits donc on n'utilise pas la fonction Effectuer_Decalage()
 	// Notre 2nd opérande est à jour
 	// Actuellement stocké dans la Variable valeur_i (uint8_t)
 
