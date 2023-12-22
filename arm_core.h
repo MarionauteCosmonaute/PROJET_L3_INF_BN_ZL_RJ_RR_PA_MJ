@@ -28,6 +28,12 @@ Contact: Guillaume.Huard@imag.fr
 #include "registers.h"
 #include "memory.h"
 
+struct arm_core_data {
+    uint32_t cycle_count;
+    registers reg;
+    memory mem;
+};
+
 typedef struct arm_core_data *arm_core;
 
 void arm_init();

@@ -25,6 +25,11 @@ Contact: Guillaume.Huard@imag.fr
 #include <stdint.h>
 #include <stdio.h>
 
+struct registers_data
+{
+    uint64_t *registre;
+};
+
 typedef struct registers_data *registers;
 
 registers registers_create();
