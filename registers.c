@@ -24,10 +24,6 @@ Contact: Guillaume.Huard@imag.fr
 #include "arm_constants.h"
 #include <stdlib.h>
 
-struct registers_data
-{
-    uint64_t *registre;
-};
 
 registers registers_create()
 {

@@ -41,12 +41,6 @@ Contact: Guillaume.Huard@imag.fr
 #define ENDIANESS 0
 #endif
 
-struct arm_core_data {
-    uint32_t cycle_count;
-    registers reg;
-    memory mem;
-};
-
 arm_core arm_create(registers reg, memory mem) {
     arm_core p;
 

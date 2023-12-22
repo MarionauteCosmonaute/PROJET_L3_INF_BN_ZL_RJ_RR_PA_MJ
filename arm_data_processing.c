@@ -59,19 +59,18 @@ uint32_t Effectuer_Decalage(int decalage, int val, uint32_t r)
 	if ( decalage == ASR ) // On veut insérer "val" fois le bit 31 à la position 31 (en poussant les bits de poids faibles)
 	{
 		uint8_t bit_31 = get_bit(r, 31);
-		if ( bit_31 == 1 )
-		{
-			printf("cas 1\n");
-			uint32_t masque = 0;
-			masque = ~masque;
-			masque = masque<<(32-val);
-			return r>>val | masque;
+
+		for(int i=0; i<val; i++){
+			if ( bit_31 == 1 )
+			{
+				 r = r>>1 | (1<<31);
+			}
+			else
+			{
+				 r = r>>1 & ~(1<<31);
+			}
 		}
-		else
-		{
-			printf("cas 2\n");
-			return r>>val;
-		}
+		return r;
 	}
 	// 	if ( decalage == ROR ) //On veut effectuer une rotation par la droite: que les "val" de poids faibles re-rentrent et poussent les "val" bits de poids forts 
 	return (r>>val) | (r<<(32-val));
