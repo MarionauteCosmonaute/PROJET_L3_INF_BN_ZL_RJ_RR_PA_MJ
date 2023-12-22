@@ -48,31 +48,31 @@ int Determiner_Decalage(int bit6, int bit5)
 
 uint32_t Effectuer_Decalage(int decalage, int val, uint32_t r)
 {
-	if ( decalage == LSL ) // On ajoute "val" 0 aux bits de poids faibles 10110010 <--0
+	if ( decalage == LSL ) // On ajoute "val" aux bits de poids faibles 10110010 <--0
 	{
 		return r<<val;
 	}
-	if ( decalage == LSR ) // On ajoute "val" 0 aux bits de poids forts 0 --> 01010011
+	if ( decalage == LSR ) // On ajoute "val" aux bits de poids forts 0 --> 01010011
 	{
 		return r>>val;
 	}
 	if ( decalage == ASR ) // On veut insérer "val" fois le bit 31 à la position 31 (en poussant les bits de poids faibles)
 	{
 		uint8_t bit_31 = get_bit(r, 31);
-		if ( bit_31 == 1 )
-		{
-			uint32_t masque = 0;
-			masque = ~masque;
-			masque<<32-val;
-			return r>>val | masque;
+		for(int i=0; i<val; i++){
+			if ( bit_31 == 1 )
+			{
+				 r = r>>1 | (1<<31);
+			}
+			else
+			{
+				 r = r>>1 & ~(1<<31);
+			}
 		}
-		else
-		{
-			return r>>val;
-		}
+		return r;
 	}
-	// 	if ( decalage == ROR ) //On veut effectuer une rotation par la droite: que les "val" de poids faibles re-rentrent et poussent les "val" bits de poids forts.
-	return (r>>val) | (r<<32-val);
+	// 	if ( decalage == ROR ) //On veut effectuer une rotation par la droite: que les "val" de poids faibles re-rentrent et poussent les "val" bits de poids forts 
+	return (r>>val) | (r<<(32-val));
 }
 
 int Update_Flags(uint64_t temp, arm_core p, int bit_S, uint32_t Rd_num)
