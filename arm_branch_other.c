@@ -33,10 +33,9 @@ int arm_branch(arm_core p, uint32_t ins) {
     uint8_t mode = registers_get_mode(p->reg);
     uint32_t signed_immed_24 =get_bits(ins,23,0);
     if(bit_l){
-        (p->reg)->registre[14] = registers_read(p->reg, 15, mode) + 4;
+        arm_write_register(p, 14,arm_read_register(p, 15) + 4);
     }
-    (p->reg)->registre[15] += signed_immed_24 << 2;
-    
+    arm_write_register(p, 15,arm_read_register(p, 15) + signed_immed_24 << 2);
     return 0;
 }
 
@@ -46,6 +45,7 @@ int arm_coprocessor_others_swi(arm_core p, uint32_t ins) {
     }
     return UNDEFINED_INSTRUCTION;
 }
+
 
 int arm_miscellaneous(arm_core p, uint32_t ins) {
     return UNDEFINED_INSTRUCTION;
