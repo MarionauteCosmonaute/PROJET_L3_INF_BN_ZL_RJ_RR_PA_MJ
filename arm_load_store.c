@@ -41,7 +41,13 @@ int arm_load_store(arm_core p, uint32_t ins) {
     int l = get_bit(ins, 20);
     uint32_t offset;
     uint32_t adresse = (p->reg)->registre[Rn];
+    uint32_t value;
+    if(Rn ==15){
+        value = adresse + 8;
+    }
     int word_byte = get_bits(ins, 27, 26) == 0b01;
+    int result; //sera utilisé pour vérifier si on a pas de data abort
+    //voir pour definir value en uint32_t ici mais il faut cast dans certains cas
 
     //si mot ou byte non signé
     if(word_byte) {
@@ -52,10 +58,10 @@ int arm_load_store(arm_core p, uint32_t ins) {
         if(immediat) {
             uint8_t Rm = get_bits(ins, 3, 0);
             uint32_t Rm_value = arm_read_register(p, Rm);
-            uint8_t shift_op = get_bits(ins, 6, 5); //opérateur de décalage à appliquer à la valeur d'offset
-            uint8_t shift_imm = get_bits(ins, 11, 7); //valeur du décalage appliqué à la valeur d'offset            
+            uint8_t shift_op = get_bits(ins, 6, 5);
+            uint8_t shift_imm = get_bits(ins, 11, 7); //val qu'on va utiliser pour décaler la valeur d'offset            
 
-            if(get_bit(ins, 4)) return UNDEFINED_INSTRUCTION;
+            if(get_bit(ins, 4)) return UNDEFINED_INSTRUCTION; //est indiqué à 0 dans la doc
             //page 445
             //à voir si les opérations sont faites autres part
             switch(shift_op) {
@@ -71,8 +77,8 @@ int arm_load_store(arm_core p, uint32_t ins) {
                 case ROR: { // Rotate right, shift_imm==0, RRX Rotate right with extend
                     if(shift_imm == 0){
                         // bit de retenue sortante
-                        int carry_flag = get_bit(arm_read_cpsr(p), C);
-                        offset = ((carry_flag << 31) | (Rm_value >> 1));
+                        int carry = get_bit(arm_read_cpsr(p), C);
+                        offset = ((carry << 31) | (Rm_value >> 1));
                     } 
                     else{
                         offset = ror(Rm_value, shift_imm); 
@@ -89,37 +95,40 @@ int arm_load_store(arm_core p, uint32_t ins) {
 
         if(p_bit) {
             adresse += u ? offset : -offset; //si u==0, on decremente l'offset sinon on incremente
-            if(w) arm_write_register(p, Rn, adresse);
+            if(w){
+                arm_write_register(p, Rn, adresse);
+            }
         }
 
         if(l) { //load
             if(b) { //LDRB (byte)
-                uint8_t value;
-
-                int result = arm_read_byte(p, adresse, &value);
-                if(result == -1){
-                    return DATA_ABORT;
+                if(Rn!=15){
+                    result = arm_read_byte(p, adresse, (uint8_t) &value);
+                    if(result == -1){
+                        return DATA_ABORT;
+                    }
                 }
                 arm_write_register(p, Rd, value);
             } 
             else { //LDR (word)
-                uint32_t value;
-
-                int result = arm_read_word(p, adresse, &value);
-                if(result == -1){
-                    return DATA_ABORT;
+                if(Rn!=15){
+                    result = arm_read_word(p, adresse, &value);
+                    if(result == -1){
+                        return DATA_ABORT;
+                    }
                 }
                 arm_write_register(p, Rd, value);
             }
                 
-        } else { //store
-            uint32_t value = arm_read_register(p, Rd);
-            int result;
-
-            if(b) //STRB (byte) 
-                result = arm_write_byte(p, adresse, value);
-            else //STR (word)
+        } 
+        else { //store
+            if(Rn!=15) value = arm_read_register(p, Rd);
+            if(b){ //STRB (byte) 
+                result = arm_write_byte(p, adresse, (uint8_t) value);
+            }
+            else{ //STR (word)
                 result = arm_write_word(p, adresse, value);
+            }
 
             if(result == -1){
                     return DATA_ABORT;
@@ -139,21 +148,28 @@ int arm_load_store(arm_core p, uint32_t ins) {
         
     //si half
     else {
-        int half_signed_byte = (get_bits(ins, 27, 25) == 0b000 && get_bit(ins, 7) == 1 &&            get_bit(ins, 4) == 1 && p_bit == 1 && !(get_bits(ins, 6, 5) == 0b00);
-
-        if(half_signed_byte) {
+        if(Rn == 15){
+            return UNDEFINED_INSTRUCTION;
+        }
+        int half = (get_bits(ins, 27, 25) == 0b000 && get_bit(ins, 7) == 1 && get_bit(ins, 4) == 1);
+        uint16_t value;
+        if(half) {
             int immediat = get_bit(ins, 22);
             uint8_t sh = get_bits(ins, 6, 5);
             uint8_t acces_mem = (l << 2) | sh; // LSH (sur 3 bits type acces mem)
+             /*
+            L=0, S=0, H=1 Store halfword. Case 1
+            L=1, S=0, H=1 Load unsigned halfword. Case 5
+            */
 
             if(immediat){ //si immediat
                 uint8_t immedL = get_bits(ins, 3, 0); 
                 uint8_t immedH = get_bits(ins, 11, 8);
-                offset = (immedH << 4) | immedL; //voir p.475
+                offset = (immedH << 4) | immedL; //voir p.475 immedH top 4 bits, immedL bottom 4 bits
             } 
             else{
                 uint8_t Rm = get_bits(ins, 3, 0);
-                offset = arm_read_register(p, Rm);
+                offset = arm_read_register(p, Rm); // Specifies the register containing the offset to add to or subtract from Rn
             }
 
             if(p_bit) {
@@ -163,29 +179,17 @@ int arm_load_store(arm_core p, uint32_t ins) {
                 }
             }
 
-            /*
-            L=0, S=0, H=1 Store halfword. Case 1
-            L=0, S=1, H=0 Load doubleword. On a pas
-            L=0, S=1, H=1 Store doubleword. On a pas
-            L=1, S=0, H=1 Load unsigned halfword. Case 5
-            L=1, S=1, H=0 Load signed byte. On a pas
-            L=1, S=1, H=1 Load signed halfword. On a pas
-            */
-
-
             switch(acces_mem) {
                 case 1: { //STRH
-                    uint16_t value = arm_read_register(p, Rd);
-
-                    int result = arm_write_half(p, adresse, value);
+                    value = arm_read_register(p, Rd);
+                    result = arm_write_half(p, adresse, value);
                     if(result == -1){
                         return DATA_ABORT;
                     }
                     break;
                 }
                 case 5: { //LDRH 
-                    uint16_t value;
-                    int result =  arm_read_half(p, adresse, &value);
+                    result =  arm_read_half(p, adresse, &value);
                     if(result == -1){
                         return DATA_ABORT;
                     }
@@ -199,6 +203,9 @@ int arm_load_store(arm_core p, uint32_t ins) {
 
 
             if(!p_bit) {
+                if(w){
+                    return UNDEFINED_INSTRUCTION;
+                }
                 adresse += u ? offset : -offset;
                 arm_write_register(p, Rn, adresse);
             }
@@ -211,213 +218,11 @@ int arm_load_store(arm_core p, uint32_t ins) {
     return 0;
 }
 
-
-/*
-void read_write(int l, int b, arm_core p, uint32_t adresse, uint8_t Rd, uint32_t *value){
-    if (l){ //load
-        if(b == 1){
-            arm_read_byte(p, adresse, (uint8_t *) value);
-        }
-        else{
-            arm_read_word(p, adresse, value);
-        }
-        arm_write_register(p, Rd, *value);
-    }
-    else { //store
-        arm_read_register(p, Rd);
-        if(b == 1){
-            arm_write_byte(p, adresse, *(uint8_t *)value); 
-        }
-        else{
-            arm_write_word(p, adresse, *value);
-         }
-    }
-}
-
-//page 459
-int arm_load_store(arm_core p, uint32_t ins) {
-    if(cond_not_respect(p, ins)){
-        return -1;
-    }
-
-    int p_bit = get_bit(ins, 24);
-    int u = get_bit(ins, 23);
-    int b = get_bit(ins, 22); //bit B : byte ou word
-    int w = get_bit(ins, 21);
-    int l = get_bit(ins, 20); // 0 store, 1 load
-    int immediat = get_bit(ins, 25);
-    uint8_t Rn = get_bits(ins, 19, 16);
-    uint8_t Rd = get_bits(ins, 15, 12);
-    uint32_t offset;
-    uint32_t adresse = (p->reg)->registre[Rn];
-    // vaut 1 si l'accès mémoire concerne un word ou byte
-    int word_byte = get_bits(ins, 27, 26) == 0b01;
-
-    uint32_t *value = (uint32_t *)malloc(sizeof(uint32_t));
-    
-    if(immediat == 0){
-        offset = get_bits(ins, 11, 0);
-    }
-    else{
-        uint8_t Rm = get_bits(ins, 3, 0);
-        offset = (p->reg)->registre[Rm];
-    }
-
-    if (u == 0){
-        offset = -offset;
-    }
-
-    if (p_bit == 0 && w == 0){
-        read_write(l, b, p, adresse, Rd, *value);
-        adresse += offset;
-        (p->reg)->registre[Rn] = adresse;
-        return 0;
-    }
-    else if(p_bit == 0 && w == 1){
-        if (l){ //load
-            if(b == 1){
-                arm_read_byte(p, adresse, (uint8_t *) value);
-            }
-            else{
-                arm_read_word(p, adresse, value);
-            }
-            arm_write_usr_register(p, Rd, *value);
-        }
-        else { //store
-            arm_read_usr_register(p, Rd);
-            if(b == 1){
-               arm_write_byte(p, adresse, *value); 
-            }
-            else{
-               arm_write_word(p, adresse, *value);
-            }
-        }
-        adresse += offset;
-        (p->reg)->registre[Rn] = adresse;
-        return 0;
-    }
-    else if(p_bit == 1 && w == 0){
-        read_write(l, b, p, adresse, Rd, *value);
-        return 0;
-    }
-    else{ // p == 1 et w == 1)
-        adresse += offset; 
-        (p->reg)->registre[Rn] = adresse;
-        read_write(l, b, p, adresse, Rd, *value);
-        return 0;
-    }
-    return UNDEFINED_INSTRUCTION;
-}
-
-*/
-
-/*
-//page 482
 int arm_load_store_multiple(arm_core p, uint32_t ins) {
     if(cond_not_respect(p, ins)){
         return -1;
     }
 
-    /*
-    page 481
-    IA (Increment After)  P 0 U 1
-    IB (Increment Before) P 1 U 1 
-    DA (Decrement After)  P 0 U 0
-    DB (Decrement Before) P 1 U 0
-
-    W 1 base register is updated after the transfer. The base register is incremented
-    (U==1) or decremented (U==0) by four times the number of registers in the register list.
-    */
-    /*
-    int p_bit = get_bit(ins, 24);
-    int u = get_bit(ins, 23);
-    int s = get_bit(ins, 22);
-    int w = get_bit(ins, 21);
-    int l = get_bit(ins, 20);
-    uint8_t Rn = get_bits(ins, 19, 16);
-    uint32_t adresse = (p->reg)->registre[Rn];
-    uint32_t *value = (uint32_t *)malloc(sizeof(uint32_t)); 
-    uint32_t val_pc;   
-    
-    if (l && s && ( registers_get_mode(p->reg) == SYS || registers_get_mode(p->reg) == USR)) {
-        return UNDEFINED_INSTRUCTION;
-    }
-
-    int direction = u ? 1 : -1; // direction du transfert
-
-     /*
-    if ((p_bit == 0 && u == 0) || (p_bit == 1 && u == 1)) {
-        adresse -= direction; // à verif j'ai pas hyper compris
-    }
-    */
-/*
-    adresse = calcul_adr(p, w, adresse); //
-    int nbReg = 0;
-    for(int i=0; i<1; i++){
-        if (get_bit(ins,i) == 1){
-            nbReg+=1;
-        }
-    }
-    if (nbReg == 0){
-        return UNDEFINED_INSTRUCTION;
-    }
-
-    int increment = 0; //calcule l'incrementation
-    if (w) {
-        increment = 4 * nbReg * direction;
-    }
-
-    /*
-    Rajouter ce cas particulier :
-    For LDMs that load the PC, the S bit indicates that the CPSR is loaded from the SPSR. For
-    LDMs that do not load the PC and all STMs, the S bit indicates that when the processor is in a
-    privileged mode, the User mode banked registers are transferred instead of the registers of
-    the current mode.
-    */
-    /*
-    for (int reg_num = 0; reg_num < 16; reg_num++) {
-        if (get_bit(ins, reg_num)) {
-            if (l) { // Load
-                if(reg_num == 15 && s == 1){
-                    arm_write_cpsr(p, arm_read_spsr(p));
-                    val_pc = arm_read_cpsr(p);
-                    arm_write_register(p, reg_num, val_pc);
-                }
-                else{
-                    if(s == 1 && arm_in_a_privileged_mode(p) == 1){
-                        arm_read_word(p, adresse, value);
-                        arm_write_usr_register(p, reg_num, *value);
-                        //the User mode banked registers are transferred instead of the registers of the current mode. 
-                    }
-                    else{
-                        arm_read_word(p, adresse, value);
-                        arm_write_register(p, reg_num, *value);
-                    }
-                }
-            } 
-            else { // Store
-                if(s == 1 && arm_in_a_privileged_mode(p) == 1){
-                    //the User mode banked registers are transferred instead of the registers of the current mode. 
-                    *value = arm_read_usr_register(p, reg_num);
-                    arm_write_word(p, adresse, *value);                   
-                }
-                else{
-                    *value = (p->reg)->registre[reg_num];
-                    arm_write_word(p, adresse, *value);  
-                } 
-            }
-        }
-    }
-
-    if (w) { //maj du reg apres le transfert
-        (p->reg)->registre[Rn] = adresse + increment;
-    }
-
-    return 0;
-}
-*/
-
-int arm_load_store_multiple(arm_core p, uint32_t ins) {
     int p_bit = get_bit(ins, 24);
     int u = get_bit(ins, 23);
     int s = get_bit(ins, 22);
@@ -426,11 +231,12 @@ int arm_load_store_multiple(arm_core p, uint32_t ins) {
     uint8_t Rn = get_bits(ins, 19, 16);
     uint16_t list_registers = get_bits(ins, 15, 0);
     uint32_t value;
+    int result;
     uint32_t adresse = arm_read_register(p, Rn);
     
-    if(p_bit) // incrementation ou decrementation en fonction de u
+    if(p_bit){ // incrementation ou decrementation en fonction de u
         adresse += u ? 4 : -4;
-
+    }
     if (list_registers == 0){
         return UNDEFINED_INSTRUCTION;
     }
@@ -439,7 +245,7 @@ int arm_load_store_multiple(arm_core p, uint32_t ins) {
         if(l) { //LDM(1)
             for(int reg_num = 0; reg_num < 15; reg_num++){ //on veut pas 15 car sinon c'est la PC
                 if(get_bit(list_registers, reg_num)) {
-                    int result = arm_read_word(p, adresse, &value);
+                    result = arm_read_word(p, adresse, &value);
                     if(result == -1){
                         return DATA_ABORT;
                     }
@@ -457,7 +263,7 @@ int arm_load_store_multiple(arm_core p, uint32_t ins) {
             for(int reg_num = 0; reg_num <= 15; reg_num++) {
                 if(get_bit(register_list, reg_num)) {
                     value = arm_read_register(p, reg_num);
-                    int result = arm_write_word(p, adresse, value);
+                    result = arm_write_word(p, adresse, value);
                     if(result == -1) {
                         return DATA_ABORT;
                     }
@@ -472,11 +278,16 @@ int arm_load_store_multiple(arm_core p, uint32_t ins) {
         return UNDEFINED_INSTRUCTION;
     }
 
-    if(w){
-        if(p_bit) {
-            adresse -= u ? 4 : -4; //à verif j'ai essayé de faire les calculs mais le mal de crane
+    int nbReg = 0;
+    for(int i=0; i<1; i++){
+        if (get_bit(ins,i) == 1){
+            nbReg+=1;
         }
-        arm_write_register(p, Rn, address);
+    }
+    
+    if(w){
+        adresse += u ? 4*nbReg : -4*nbReg;
+        arm_write_register(p, Rn, adresse);
     }
 
     return 0;
