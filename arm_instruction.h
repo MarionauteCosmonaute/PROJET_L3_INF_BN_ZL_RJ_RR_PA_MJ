@@ -23,7 +23,7 @@ Contact: Guillaume.Huard@imag.fr
 #ifndef __ARM_INSTRUCTION_H__
 #define __ARM_INSTRUCTION_H__
 #include "arm_core.h"
-
+int arm_execute_instruction(arm_core p);
 int arm_step(arm_core p);
 
 #endif
