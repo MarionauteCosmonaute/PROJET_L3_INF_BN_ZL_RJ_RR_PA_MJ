@@ -25,12 +25,12 @@ Contact: Guillaume.Huard@imag.fr
 #include <stdint.h>
 #include <sys/types.h>
 
-typedef struct memory_data *memory;
-
 struct memory_data {
     size_t size;
     uint8_t *data;
 };
+
+typedef struct memory_data *memory;
 
 memory memory_create(size_t size);
 size_t memory_get_size(memory mem);
