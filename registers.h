@@ -40,7 +40,7 @@ Contact: Guillaume.Huard@imag.fr
 #define R12 12
 #define R13 13
 #define R14 14
-#define PC 15
+#define PC_REG 15
 #define CPSR 16
 #define R13_svc 17
 #define R14_svc 18
