@@ -23,20 +23,22 @@ Contact: Guillaume.Huard@imag.fr
 #include "arm_branch_other.h"
 #include "arm_constants.h"
 #include "util.h"
+#include "arm_core.h"
 #include <debug.h>
 #include <stdlib.h>
 
 
 int arm_branch(arm_core p, uint32_t ins) {
-    if cond_not_respect(p,ins){return -1;}
+    if (cond_not_respect(p,ins)){return -1;}
     uint8_t bit_l = get_bit(ins,24);
     uint8_t mode = registers_get_mode(p->reg);
     uint32_t signed_immed_24 = get_bits(ins,23,0);
-    if((bit_l) | (get_bits(ins,31,28) == 16)){
+    if((bit_l) | (get_bits(ins,31,28) == 15)){
         arm_write_register(p, 14,arm_read_register(p, 15) + 4);
     }
-    if (get_bits(ins,31,28) == 16){
-        arm_write_register(p, 15,arm_read_register(p, 15) + (signed_immed_24 << 2) + (bit_l << 1))
+    if (get_bits(ins,31,28) == 15){
+        arm_write_register(p, 16,set_bit(arm_read_register(p, 16),5));      //le bit T de CPSR prend la valeur 1
+        arm_write_register(p, 15,arm_read_register(p, 15) + (signed_immed_24 << 2) + (bit_l << 1));
     }
     else{
         arm_write_register(p, 15,arm_read_register(p, 15) + (signed_immed_24 << 2));
@@ -53,5 +55,20 @@ int arm_coprocessor_others_swi(arm_core p, uint32_t ins) {
 
 
 int arm_miscellaneous(arm_core p, uint32_t ins) {
+    if (cond_not_respect(p,ins)){
+        uint32_t valeur;
+        if(get_bit(ins,25)){        // fonction MSR A4-76
+            
+        }
+    }
     return UNDEFINED_INSTRUCTION;
 }
+/*
+if (get_bits(ins,27,20) == 18){ // fonction BX A4-20
+        if(get_bit(ins,0)) {arm_write_register(p, 16,clr_bit(arm_read_register(p, 16),5));} //bit T de CPSR prend la valeur du bit de poids faible de l'ins
+        else{arm_write_register(p, 16,set_bit(arm_read_register(p, 16),5));
+        return 0;
+        }
+    }
+    else if((ins,27,20) == 18){ // fonction SWP A4-212 
+*/
