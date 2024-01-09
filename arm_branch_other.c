@@ -31,11 +31,16 @@ int arm_branch(arm_core p, uint32_t ins) {
     if cond_not_respect(p,ins){return -1;}
     uint8_t bit_l = get_bit(ins,24);
     uint8_t mode = registers_get_mode(p->reg);
-    uint32_t signed_immed_24 =get_bits(ins,23,0);
-    if(bit_l){
+    uint32_t signed_immed_24 = get_bits(ins,23,0);
+    if((bit_l) | (get_bits(ins,31,28) == 16)){
         arm_write_register(p, 14,arm_read_register(p, 15) + 4);
     }
-    arm_write_register(p, 15,arm_read_register(p, 15) + signed_immed_24 << 2);
+    if (get_bits(ins,31,28) == 16){
+        arm_write_register(p, 15,arm_read_register(p, 15) + (signed_immed_24 << 2) + (bit_l << 1))
+    }
+    else{
+        arm_write_register(p, 15,arm_read_register(p, 15) + (signed_immed_24 << 2));
+    }
     return 0;
 }
 
