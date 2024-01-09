@@ -47,7 +47,6 @@ int arm_load_store(arm_core p, uint32_t ins) {
     }
     int word_byte = get_bits(ins, 27, 26) == 0b01;
     int result; //sera utilisé pour vérifier si on a pas de data abort
-    //voir pour definir value en uint32_t ici mais il faut cast dans certains cas
 
     //si mot ou byte non signé
     if(word_byte) {
@@ -79,20 +78,17 @@ int arm_load_store(arm_core p, uint32_t ins) {
             if(b) { //LDRB (byte)
                 if(Rn!=15){
                     result = arm_read_byte(p, adresse, (uint8_t) &value);
-                    if(result == -1){
-                        return DATA_ABORT;
-                    }
                 }
                 arm_write_register(p, Rd, value);
             } 
             else { //LDR (word)
                 if(Rn!=15){
                     result = arm_read_word(p, adresse, &value);
-                    if(result == -1){
-                        return DATA_ABORT;
-                    }
                 }
                 arm_write_register(p, Rd, value);
+            }
+            if(result == -1){
+                return DATA_ABORT;
             }
                 
         } 
@@ -106,7 +102,7 @@ int arm_load_store(arm_core p, uint32_t ins) {
             }
 
             if(result == -1){
-                    return DATA_ABORT;
+                return DATA_ABORT;
             }
         }  
 
@@ -158,24 +154,20 @@ int arm_load_store(arm_core p, uint32_t ins) {
                 case 1: { //STRH
                     value = arm_read_register(p, Rd);
                     result = arm_write_half(p, adresse, value);
-                    if(result == -1){
-                        return DATA_ABORT;
-                    }
                     break;
                 }
                 case 5: { //LDRH 
                     result =  arm_read_half(p, adresse, &value);
-                    if(result == -1){
-                        return DATA_ABORT;
-                    }
                     arm_write_register(p, Rd, value);
                     break;
                 }     
-           
                 default:
                     return UNDEFINED_INSTRUCTION;
             }
-
+            
+            if(result == -1){
+                return DATA_ABORT;
+            }
 
             if(!p_bit) {
                 if(w){
@@ -216,9 +208,9 @@ int arm_load_store_multiple(arm_core p, uint32_t ins) {
         return UNDEFINED_INSTRUCTION;
     }
     
-    if(!s) { //si s==1 on part sur LDMs
+    if(!s) { 
         if(l) { //LDM(1)
-            for(int reg_num = 0; reg_num < 15; reg_num++){ //on veut pas 15 car sinon c'est la PC
+            for(int reg_num = 0; reg_num < 15; reg_num++){ 
                 if(get_bit(list_reg, reg_num)) {
                     result = arm_read_word(p, adresse, &value);
                     if(result == -1){
@@ -230,7 +222,7 @@ int arm_load_store_multiple(arm_core p, uint32_t ins) {
             }
 
             if(get_bit(list_reg, 15)) {
-                //pas trouvé si cas spé pour la PC, car on a pas S==1 donc pas le truc avec CPSR etc
+                return UNDEFINED_INSTRUCTION; //pas compris le cas spé pour la pc
             }
 
         } 
@@ -269,7 +261,7 @@ int arm_load_store_multiple(arm_core p, uint32_t ins) {
 }
 
 
-
+/*
 
 void read_write_coprocessor(int l, arm_core p, uint32_t adresse, uint8_t CRd, uint32_t *value){
     if (l){ //load
@@ -328,3 +320,4 @@ int arm_coprocessor_load_store(arm_core p, uint32_t ins) {
         return 0;
     }
 }
+*/
