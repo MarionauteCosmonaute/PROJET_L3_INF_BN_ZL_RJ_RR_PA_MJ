@@ -23,6 +23,7 @@ Contact: Guillaume.Huard@imag.fr
 #include "arm_load_store.h"
 #include "arm_exception.h"
 #include "arm_constants.h"
+#include "arm_data_processing.h"
 #include "util.h"
 #include "debug.h"
 #include <stdlib.h>
@@ -42,6 +43,7 @@ int arm_load_store(arm_core p, uint32_t ins) {
     uint32_t offset;
     uint32_t adresse = (p->reg)->registre[Rn];
     uint32_t value;
+    uint8_t value8;
     if(Rn ==15){
         value = adresse + 8;
     }
@@ -60,8 +62,10 @@ int arm_load_store(arm_core p, uint32_t ins) {
             uint8_t shift_op = get_bits(ins, 6, 5);
             uint8_t shift_imm = get_bits(ins, 11, 7); //val qu'on va utiliser pour décaler la valeur d'offset            
 
-            if(get_bit(ins, 4)) return UNDEFINED_INSTRUCTION; //est indiqué à 0 dans la doc
-            offset = Effectuer_Decalage(shift_op, shift_imm, Rm_value); //page 445 
+            if(get_bit(ins, 4)){
+                return UNDEFINED_INSTRUCTION; //est indiqué à 0 dans la doc
+            }
+            offset = Effectuer_Decalage(shift_op, shift_imm, Rm_value); //page 445         
         } 
         else{//si valeur immédiate
             offset = get_bits(ins, 11, 0);
@@ -77,9 +81,9 @@ int arm_load_store(arm_core p, uint32_t ins) {
         if(l) { //load
             if(b) { //LDRB (byte)
                 if(Rn!=15){
-                    result = arm_read_byte(p, adresse, (uint8_t) &value);
+                    result = arm_read_byte(p, adresse, &value8);
                 }
-                arm_write_register(p, Rd, value);
+                arm_write_register(p, Rd, value8);
             } 
             else { //LDR (word)
                 if(Rn!=15){
@@ -93,9 +97,12 @@ int arm_load_store(arm_core p, uint32_t ins) {
                 
         } 
         else { //store
-            if(Rn!=15) value = arm_read_register(p, Rd);
+            if(Rn!=15) {
+                value = arm_read_register(p, Rd);
+                value8 = arm_read_register(p, Rd);
+            }
             if(b){ //STRB (byte) 
-                result = arm_write_byte(p, adresse, (uint8_t) value);
+                result = arm_write_byte(p, adresse, value8);
             }
             else{ //STR (word)
                 result = arm_write_word(p, adresse, value);
@@ -201,59 +208,42 @@ int arm_load_store_multiple(arm_core p, uint32_t ins) {
     int result;
     uint32_t adresse = arm_read_register(p, Rn);
     
+    
     if(p_bit){ // incrementation ou decrementation en fonction de u
         adresse += u ? 4 : -4;
     }
-    if (list_reg == 0){
+    if (list_reg == 0 || (get_bit(ins, Rn) && w)){
         return UNDEFINED_INSTRUCTION;
     }
     
     if(!s) { 
-        if(l) { //LDM(1)
-            for(int reg_num = 0; reg_num < 15; reg_num++){ 
-                if(get_bit(list_reg, reg_num)) {
+        for(int reg_num = 0; reg_num < 15; reg_num++){ 
+            if(get_bit(list_reg, reg_num)) {
+                if(l){
                     result = arm_read_word(p, adresse, &value);
-                    if(result == -1){
-                        return DATA_ABORT;
-                    }
-                    adresse += u ? 4 : -4;
                     arm_write_register(p, reg_num, value);
                 }
-            }
-
-            if(get_bit(list_reg, 15)) {
-                return UNDEFINED_INSTRUCTION; //pas compris le cas spé pour la pc
-            }
-
-        } 
-        else { //STM(1)
-            for(int reg_num = 0; reg_num <= 15; reg_num++) {
-                if(get_bit(list_reg, reg_num)) {
+                else{
                     value = arm_read_register(p, reg_num);
                     result = arm_write_word(p, adresse, value);
-                    if(result == -1) {
-                        return DATA_ABORT;
-                    }
-                    adresse += u ? 4 : -4;
                 }
+                if(result == -1){
+                    return DATA_ABORT;
+                }
+                adresse += u ? 4 : -4;
             }
-
+        }
+        
+        if(get_bit(list_reg, 15)) {
+            return UNDEFINED_INSTRUCTION; //cas spé pour la pc, branchement pour load et implementation defined en store
         }
     } 
     
     else { 
         return UNDEFINED_INSTRUCTION;
     }
-
-    int nbReg = 0;
-    for(int i=0; i<1; i++){
-        if (get_bit(ins,i) == 1){
-            nbReg+=1;
-        }
-    }
     
     if(w){
-        adresse += u ? 4*nbReg : -4*nbReg;
         arm_write_register(p, Rn, adresse);
     }
 
@@ -261,63 +251,6 @@ int arm_load_store_multiple(arm_core p, uint32_t ins) {
 }
 
 
-/*
-
-void read_write_coprocessor(int l, arm_core p, uint32_t adresse, uint8_t CRd, uint32_t *value){
-    if (l){ //load
-        arm_read_word(p, adresse, value);
-        arm_write_register(p, CRd, *value);
-    }
-    else { //store
-        arm_read_register(p, CRd);
-        arm_write_word(p, adresse, *value);
-    }
-}
-
-//page 490
 int arm_coprocessor_load_store(arm_core p, uint32_t ins) {
-    if(cond_not_respect(p, ins)){
-        return -1;
-    }
-    
-    int p_bit = get_bit(ins, 24);
-    int u = get_bit(ins, 23);
-    int w = get_bit(ins, 21);
-    int l = get_bit(ins, 20);
-    uint8_t Rn = get_bits(ins, 19, 16);
-    uint8_t CRd = get_bits(ins, 15, 12);
-    //uint8_t coprocessor_num = get_bits(ins, 11, 8);
-    uint32_t offset = get_bits(ins, 7, 0);
-    uint32_t adresse = (p->reg)->registre[Rn];
-    uint32_t *value = (uint32_t *)malloc(sizeof(uint32_t));
-
-    if(p_bit == 0 && w == 0 && u == 0){ //cas spécial
-        return UNDEFINED_INSTRUCTION;
-    }
-
-    if (u == 0){
-        offset = -offset;
-    }
-    
-    if (p_bit == 0 && w == 0){
-        read_write_coprocessor(l, p, adresse, CRd, *value);
-        return 0;
-    }
-    else if(p_bit == 0 && w == 1){
-        read_write_coprocessor(l, p, adresse, CRd, *value);
-        (p->reg)->registre[Rn] += offset;
-        return 0;
-    }
-    else if(p_bit == 1 && w == 0){
-        adresse +=offset;
-        read_write_coprocessor(l, p, adresse, CRd, *value);
-        return 0;
-    }
-    else { // p == 1 et w == 1
-        adresse += offset;
-        (p->reg)->registre[Rn] = adresse;
-        read_write_coprocessor(l, p, adresse, CRd, *value);
-        return 0;
-    }
+    return UNDEFINED_INSTRUCTION;
 }
-*/
