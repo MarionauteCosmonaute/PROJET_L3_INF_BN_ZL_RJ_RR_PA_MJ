@@ -29,21 +29,23 @@ Contact: Guillaume.Huard@imag.fr
 
 
 int arm_branch(arm_core p, uint32_t ins) {
-    if (cond_not_respect(p,ins)){return -1;}
-    uint8_t bit_l = get_bit(ins,24);
-    uint8_t mode = registers_get_mode(p->reg);
-    uint32_t signed_immed_24 = get_bits(ins,23,0);
-    if((bit_l) | (get_bits(ins,31,28) == 15)){
-        arm_write_register(p, 14,arm_read_register(p, 15) + 4);
+    if (cond_not_respect(p,ins) == 0 || cond_not_respect(p,ins) == 2 ){
+        uint8_t bit_l = get_bit(ins,24);
+        uint32_t signed_immed_24 = get_bits(ins,23,0);
+        if get_bit(ins,23){signed_immed_24=set_bits(signed_immed_24, 30, 24, 0xFF);}
+        if((bit_l) | (get_bits(ins,31,28) == 15)){
+            arm_write_register(p, 14,arm_read_register(p, 15));
+        }
+        if (get_bits(ins,31,28) == 15){
+            arm_write_register(p, 16,set_bit(arm_read_register(p, 16),5));      //le bit T de CPSR prend la valeur 1
+            arm_write_register(p, 15,arm_read_register(p, 15) + (signed_immed_24 << 2) + (bit_l << 1) - 4);
+        }
+        else{
+            arm_write_register(p, 15,arm_read_register(p, 15) + (signed_immed_24 << 2) - 4);
+        }
+        return 0;
     }
-    if (get_bits(ins,31,28) == 15){
-        arm_write_register(p, 16,set_bit(arm_read_register(p, 16),5));      //le bit T de CPSR prend la valeur 1
-        arm_write_register(p, 15,arm_read_register(p, 15) + (signed_immed_24 << 2) + (bit_l << 1));
-    }
-    else{
-        arm_write_register(p, 15,arm_read_register(p, 15) + (signed_immed_24 << 2));
-    }
-    return 0;
+    return -1;
 }
 
 int arm_coprocessor_others_swi(arm_core p, uint32_t ins) {
@@ -55,7 +57,7 @@ int arm_coprocessor_others_swi(arm_core p, uint32_t ins) {
 
 
 int arm_miscellaneous(arm_core p, uint32_t ins) {
-    if (cond_not_respect(p,ins)){
+    if (cond_not_respect(p,ins) == 0){
         uint32_t operand;
         uint32_t byte_mask = 0;
         uint32_t mask;
@@ -88,7 +90,7 @@ int arm_miscellaneous(arm_core p, uint32_t ins) {
             else{return DATA_ABORT;}
         }
     }
-    else{return UNDEFINED_INSTRUCTION;}
+    return UNDEFINED_INSTRUCTION;
 }
 /*
 if (get_bits(ins,27,20) == 18){ // fonction BX A4-20
