@@ -55,7 +55,7 @@ int arm_load_store(arm_core p, uint32_t ins) {
         int immediat = get_bit(ins, 25);
         int b = get_bit(ins, 22);
 
-        // si ce n'est pas un immediat
+        // si ce n'est pas un immediat 
         if(immediat) {
             uint8_t Rm = get_bits(ins, 3, 0);
             uint32_t Rm_value = arm_read_register(p, Rm);
