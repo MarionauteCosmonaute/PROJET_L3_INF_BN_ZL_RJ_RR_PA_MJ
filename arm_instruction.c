@@ -51,6 +51,9 @@ static int arm_execute_instruction(arm_core p) {
 		return arm_data_processing_shift(p, ins);
 	case 1: // 001
 		if(get_bit(ins, 24)==1 && get_bit(ins, 23)==0 && get_bit(ins, 21)==0 && get_bit(ins, 20)==0){
+			if(get_bit(ins, 21)){
+				return arm_miscellaneous(p, ins);
+			}
 			return UNDEFINED_INSTRUCTION;
 		}
 	case 1: // 001
