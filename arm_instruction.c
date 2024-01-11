@@ -33,7 +33,7 @@ int arm_execute_instruction(arm_core p) {
 	uint32_t ins;
 	arm_fetch(p, &ins);
 	int function_to_use;
-	function_to_use = (ins>>25)&7;
+	function_to_use = (ins>>25)&7; //get_bits(27,25)
 	switch(function_to_use){
 	case 0:
 		if(get_bit(ins, 24)==1 && get_bit(ins, 23)==0 && get_bit(ins, 20)==0){
