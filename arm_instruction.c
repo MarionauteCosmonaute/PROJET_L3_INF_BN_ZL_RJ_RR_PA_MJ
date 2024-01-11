@@ -42,25 +42,45 @@ static int arm_execute_instruction(arm_core p) {
 		if(get_bit(ins, 4)==1 && get_bit(ins, 7)==1){
 			return arm_load_store(p, ins);
 		}
+		if(get_bit(ins, 24)==1 && get_bit(ins, 23)==0 && get_bit(ins, 20)==0){
+			return arm_miscellaneous(p, ins);
+		}
+		if(get_bit(ins, 4)==1 && get_bit(ins, 7)==1){
+			return arm_load_store(p, ins);
+		}
 		return arm_data_processing_shift(p, ins);
+	case 1: // 001
+		if(get_bit(ins, 24)==1 && get_bit(ins, 23)==0 && get_bit(ins, 21)==0 && get_bit(ins, 20)==0){
+			return UNDEFINED_INSTRUCTION;
+		}
 	case 1: // 001
 		if(get_bit(ins, 24)==1 && get_bit(ins, 23)==0 && get_bit(ins, 21)==0 && get_bit(ins, 20)==0){
 			return UNDEFINED_INSTRUCTION;
 		}
 		return arm_data_processing_immediate_msr(p, ins);
 	case 2: //01I avec I=0
+	case 2: //01I avec I=0
 		return arm_load_store(p, ins);
+	case 3: //01I avec I=1
+		if(get_bits(ins, 24, 20)==0x1F && get_bits(ins, 7, 4)==0xF){
+			return UNDEFINED_INSTRUCTION;
+		}
 	case 3: //01I avec I=1
 		if(get_bits(ins, 24, 20)==0x1F && get_bits(ins, 7, 4)==0xF){
 			return UNDEFINED_INSTRUCTION;
 		}
 		return arm_load_store(p, ins);
 	case 4: // 100
+	case 4: // 100
 		return arm_load_store_multiple(p, ins);
+	case 5: // 101
 	case 5: // 101
 		return arm_branch(p, ins);
 	case 6: // 110
+	case 6: // 110
 		return arm_coprocessor_load_store(p, ins);
+	case 7: // 111
+		return arm_coprocessor_others_swi(p, ins);//On ajoutera ici le gestionnaire d'interruptions
 	case 7: // 111
 		return arm_coprocessor_others_swi(p, ins);//On ajoutera ici le gestionnaire d'interruptions
 	default:
