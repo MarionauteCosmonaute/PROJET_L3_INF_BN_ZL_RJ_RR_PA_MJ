@@ -210,14 +210,13 @@ int cond_not_respect(arm_core p, uint32_t ins)
     // On s'occupe de la condition pour savoir si oui ou non elle est respectée
 	uint8_t cond = (uint8_t) get_bits(ins,31,28);
 	uint32_t cpsr = arm_read_cpsr(p);
-	uint8_t flagZ;
-	uint8_t flagN;
-	uint8_t flagC;
-	uint8_t flagV;
+	uint8_t flagZ = (uint8_t) get_bit(cpsr,Z);
+	uint8_t flagN = (uint8_t) get_bit(cpsr,N);
+	uint8_t flagC = (uint8_t) get_bit(cpsr,C);
+	uint8_t flagV = (uint8_t) get_bit(cpsr,V);
 	switch (cond)
 	{
 		case 0:  // On veut que Z=1 -> EQ
-			flagZ = (uint8_t) get_bit(cpsr,Z);
 			if ( flagZ == 0 )
 			{
 				return 1;
@@ -225,7 +224,6 @@ int cond_not_respect(arm_core p, uint32_t ins)
 			break;
 
 		case 1:  // On veut que Z=0 -> NE
-			flagZ = (uint8_t) get_bit(cpsr,Z);
 			if ( flagZ == 1 )
 			{
 				return 1;
@@ -233,7 +231,6 @@ int cond_not_respect(arm_core p, uint32_t ins)
 			break;
 
 		case 2:  // On veut que C=1 -> HS/ CS
-			flagC = (uint8_t) get_bit(cpsr,C);
 			if ( flagC == 0 )
 			{
 				return 1;
@@ -241,7 +238,6 @@ int cond_not_respect(arm_core p, uint32_t ins)
 			break;
 
 		case 3:  // On veut que C=0 -> LO/CC
-			flagC = (uint8_t) get_bit(cpsr,C);
 			if ( flagC == 1 )
 			{
 				return 1;
@@ -249,7 +245,6 @@ int cond_not_respect(arm_core p, uint32_t ins)
 			break;
 
 		case 4:  // on veut que N=1 -> MI
-			flagN = (uint8_t) get_bit(cpsr,N);
 			if ( flagN == 0 )
 			{
 				return 1;
@@ -257,7 +252,6 @@ int cond_not_respect(arm_core p, uint32_t ins)
 			break;
 
 		case 5:  // On veut que N=0 -> PL
-			flagN = (uint8_t) get_bit(cpsr,N);
 			if ( flagN == 0 )
 			{
 				return 1;
@@ -265,7 +259,6 @@ int cond_not_respect(arm_core p, uint32_t ins)
 			break;
 		
 		case 6: // On veut que V=1 -> VS
-			flagV = (uint8_t) get_bit(cpsr,V);
 			if ( flagV == 0 )
 			{
 				return 1;
@@ -273,7 +266,6 @@ int cond_not_respect(arm_core p, uint32_t ins)
 			break;
 
 		case 7: // On veut que V=0 -> VC
-			flagV = (uint8_t) get_bit(cpsr,V);
 			if ( flagV == 1 )
 			{
 				return 1;
@@ -282,8 +274,6 @@ int cond_not_respect(arm_core p, uint32_t ins)
 
 		case 8: // On veut que C==1 && Z==0 -> HI
 			//flagZ = ~(get_bit(cpsr,C)) || (get_bit(cpsr,Z));
-			flagC = (uint8_t) get_bit(cpsr,C);
-			flagZ = (uint8_t) get_bit(cpsr,Z);
 			if ( flagC != 1 || flagZ != 0 )
 			{
 				return 1;
@@ -291,8 +281,6 @@ int cond_not_respect(arm_core p, uint32_t ins)
 			break;
 
 		case 9: // On veut que C==0 || Z==1 -> LS
-			flagC = (uint8_t) get_bit(cpsr,C);
-			flagZ = (uint8_t) get_bit(cpsr,Z);
 			if (flagC != 0 && flagZ != 1)
 			{
 				return 1;
@@ -300,8 +288,6 @@ int cond_not_respect(arm_core p, uint32_t ins)
 			break;
 
 		case 10: // On veut que N==V -> GE
-			flagN = (uint8_t) get_bit(cpsr,N);
-			flagV = (uint8_t) get_bit(cpsr,V);
 			if ( flagN != flagV )
 			{
 				return 1;
@@ -309,8 +295,6 @@ int cond_not_respect(arm_core p, uint32_t ins)
 			break;
 
 		case 11: // On veut que N!=V -> LT
-			flagN = (uint8_t) get_bit(cpsr,N);
-			flagV = (uint8_t) get_bit(cpsr,V);
 			if ( flagN == flagV )
 			{
 				return 1;
@@ -318,9 +302,6 @@ int cond_not_respect(arm_core p, uint32_t ins)
 			break;
 
 		case 12: // On veut que Z==0 && N == V -> GT
-			flagZ = (uint8_t) get_bit(cpsr,Z);
-			flagN = (uint8_t) get_bit(cpsr,N);
-			flagV = (uint8_t) get_bit(cpsr,V);
 			if ( flagZ != 0 || (flagN != flagV) )
 			{
 				return 1;
@@ -328,9 +309,6 @@ int cond_not_respect(arm_core p, uint32_t ins)
 			break;
 
 		case 13: // On veut que Z==1 || N!=V -> Le
-			flagZ = (uint8_t) get_bit(cpsr,Z);
-			flagN = (uint8_t) get_bit(cpsr,N);
-			flagV = (uint8_t) get_bit(cpsr,V);
 			if ( (flagZ =! 1) && (flagN == flagV) )
 			{
 				return 1;
@@ -341,7 +319,7 @@ int cond_not_respect(arm_core p, uint32_t ins)
 			break;
 
 		case 15:
-            return UNDEFINED_INSTRUCTION;
+            return 2;
          // Never -> Ne
         default: // just in case
             return 1;
