@@ -58,40 +58,16 @@ int arm_coprocessor_others_swi(arm_core p, uint32_t ins) {
 
 int arm_miscellaneous(arm_core p, uint32_t ins) {
     if (cond_not_respect(p,ins) == 0){
-        uint32_t operand;
-        uint32_t byte_mask = 0;
-        uint32_t mask;
-        if(get_bit(ins,25)){        // fonction MSR A4-76
-            uint32_t r = get_bits(ins,7,0);
-            uint32_t val = get_bits(ins,11,8) * 2;
-            operand = (r>>val) | (r<<(32-val));
+        if(0){ // a changer je ne connais pas les autre OPCODE
+            return fonction_MSR(p,ins);
         }
-        else{
-            operand = arm_read_register(p,get_bits(ins,3,0));
-        }
-        if((operand & UnallocMask) != 0){return DATA_ABORT;} // pas sur de ce return (raison du return:  "Attempt to set reserved bits")
-        if(get_bit(ins,16)){byte_mask |= 0x000000FF;}
-        if(get_bit(ins,17)){byte_mask |= 0x0000FF00;}
-        if(get_bit(ins,18)){byte_mask |= 0x00FF0000;}
-        if(get_bit(ins,19)){byte_mask |= 0xFF000000;}
-        if(!(get_bit(ins,22))){ /*verification du bit R == 0 (n22)*/
-            if(arm_in_a_privileged_mode(p)){
-                if((operand & StateMask) != 0){return DATA_ABORT;} /* Attempt to set non-ARM execution state */
-                else{mask = byte_mask & (UserMask | PrivMask);}
-            }
-            else{mask = byte_mask & UserMask;}
-            arm_write_cpsr(p,((arm_read_cpsr(p) & !(mask)) | (operand & mask)));
-        }
-        else{                   /*R == 1*/
-            if (arm_current_mode_has_spsr(p)){
-                mask = byte_mask & (UserMask | PrivMask | StateMask);
-                arm_write_spsr(p,((arm_read_spsr(p) & !(mask)) | (operand & mask)));
-            }
-            else{return DATA_ABORT;}
+        if (get_bits(ins,27,20) == 18){
+            return fonction_BX(p,ins);
         }
     }
     return UNDEFINED_INSTRUCTION;
 }
+
 /*
 if (get_bits(ins,27,20) == 18){ // fonction BX A4-20
         if(get_bit(ins,0)) {arm_write_register(p, 16,clr_bit(arm_read_register(p, 16),5));} //bit T de CPSR prend la valeur du bit de poids faible de l'ins
@@ -101,3 +77,46 @@ if (get_bits(ins,27,20) == 18){ // fonction BX A4-20
     }
     else if((ins,27,20) == 18){ // fonction SWP A4-212 
 */
+
+int fonction_BX(arm_core p, uint32_t ins){
+    if(get_bit(ins,0)) {arm_write_register(p, 16,clr_bit(arm_read_register(p, 16),5));} //bit T de CPSR prend la valeur du bit de poids faible de l'ins
+    else{arm_write_register(p, 16,set_bit(arm_read_register(p, 16),5));}
+    arm_write_register(p,15,(arm_read_register(p, get_bits(ins,3,0))) & 0xFFFFFFFE);
+    return 0;
+}
+
+int fonction_MSR(arm_core p, uint32_t ins){
+    uint32_t operand;
+    uint32_t byte_mask = 0;
+    uint32_t mask;
+    if(get_bit(ins,25)){        // fonction MSR A4-76
+        uint32_t r = get_bits(ins,7,0);
+        uint32_t val = get_bits(ins,11,8) * 2;
+        operand = (r>>val) | (r<<(32-val));
+    }
+    else{
+        operand = arm_read_register(p,get_bits(ins,3,0));
+    }
+    if((operand & UnallocMask) != 0){return DATA_ABORT;} // pas sur de ce return (raison du return:  "Attempt to set reserved bits")
+    if(get_bit(ins,16)){byte_mask |= 0x000000FF;}
+    if(get_bit(ins,17)){byte_mask |= 0x0000FF00;}
+    if(get_bit(ins,18)){byte_mask |= 0x00FF0000;}
+    if(get_bit(ins,19)){byte_mask |= 0xFF000000;}
+    if(!(get_bit(ins,22))){ /*verification du bit R == 0 (n22)*/
+        if(arm_in_a_privileged_mode(p)){
+            if((operand & StateMask) != 0){return DATA_ABORT;} /* Attempt to set non-ARM execution state */
+            else{mask = byte_mask & (UserMask | PrivMask);}
+        }
+        else{mask = byte_mask & UserMask;}
+        arm_write_cpsr(p,((arm_read_cpsr(p) & !(mask)) | (operand & mask)));
+        return 0;
+    }
+    else{                   /*R == 1*/
+        if (arm_current_mode_has_spsr(p)){
+            mask = byte_mask & (UserMask | PrivMask | StateMask);
+            arm_write_spsr(p,((arm_read_spsr(p) & !(mask)) | (operand & mask)));
+            return 0;
+        }
+        else{return DATA_ABORT;}
+    }
+}
