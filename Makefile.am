@@ -15,7 +15,12 @@ if HAVE_ARM_COMPILER
 SUBDIRS=. Examples
 endif
 
+<<<<<<< HEAD
 bin_PROGRAMS=arm_simulator send_irq memory_test registers_test 
+=======
+bin_PROGRAMS=arm_simulator send_irq memory_test registers_test test_effectuer_decalage \
+              test_determiner_decal test_data_p_shift
+>>>>>>> 0f00344 (MAJ des test 22 dec)
 
 COMMON=csapp.h csapp.c scanner.h scanner.l debug.h debug.c \
        gdb_protocol.h gdb_protocol.c util.h util.c trace.h trace.c \
@@ -28,7 +33,12 @@ COMMON=csapp.h csapp.c scanner.h scanner.l debug.h debug.c \
        arm_instruction.h arm_instruction.c \
        arm_data_processing.h arm_data_processing.c \
        arm_load_store.h arm_load_store.c \
+<<<<<<< HEAD
        arm_branch_other.h arm_branch_other.c 
+=======
+       arm_branch_other.h arm_branch_other.c \
+       command_creator.h command_creator.c
+>>>>>>> 0f00344 (MAJ des test 22 dec)
 
 arm_simulator_SOURCES=$(COMMON) arm_simulator.c
 
@@ -36,5 +46,8 @@ send_irq_SOURCES=send_irq.c csapp.h csapp.c arm_constants.h arm_constants.c
 
 memory_test_SOURCES=memory_test.c memory.h memory.c util.h util.c
 registers_test_SOURCES=registers_test.c registers.h registers.c util.h util.c arm_constants.h arm_constants.c
+test_effectuer_decalage_SOURCES=$(COMMON) test_effectuer_decalage.c
+test_determiner_decal_SOURCES=$(COMMON) test_determiner_decal.c
+test_data_p_shift_SOURCES=$(COMMON) test_data_p_shift.c
 
 EXTRA_DIST=gdb_commands make_trace.sh License
