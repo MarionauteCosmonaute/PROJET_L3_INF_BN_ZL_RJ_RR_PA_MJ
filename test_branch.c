@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include <stdio.h>
+#include <time.h>
 #include "arm_branch_other.h"
 #include "util.h"
 
@@ -37,39 +38,38 @@ int main(){
     memory mem = memory_create(0x200);
     registers reg = registers_create();
     arm_core p = arm_create(reg,mem);
-    int debut,l,nb,fin,test;
+    int debut,l,nb,fin = 0,test,fail=0;
+    srand(time(NULL));
     uint32_t ins; //0xEA00000000 pour L = 0
-    while (fin){
-        printf("quel test voulez vous effectuer?\n");
-        scanf("%d",&test);
+    printf("quel test voulez vous effectuer?\n");
+    scanf("%d",&test);
+    while (fin<10000){
         l=0;
-        switch (test)
+        debut = ((rand()%0x200)/4)*4;
+        nb = rand()%0xFFFFF;
+        switch (fin%3)
         {
         case BL: // 0
             l=1;
         case B: // 1
-            printf("A quel adresse commencer:\n");
-            scanf("%d",&debut);
-            printf("Combien de pas a faire:\n");
-            scanf("%d",&nb);
-            if(nb > 0xFFFFFF){printf("ERREUR VALEUR TROP GRANDE\n");break;}
             ins = creation_ins(l,nb,debut,p,0);
             arm_branch(p,ins);
+            printf("debut:%d nb:%d\n",debut,nb);
             printf("contenue du reg15: %d\ncontenue du reg14: %d\n",arm_read_register(p,15)-4,arm_read_register(p,14));
+            if(!((arm_read_register(p,15)-4) == (debut + nb*4))){printf("test fail reg15:%d\n",(debut + nb*4));fail++;}
+            if(l && !((arm_read_register(p,14) == debut+4))){printf("test fail reg14:%d\n",debut+4);fail++;}
+            printf("##########################################################\n");
             break;
 
         case BLX: // 2 
-            printf("A quel adresse commencer:\n");
-            scanf("%d",&debut);
-            printf("Combien de pas a faire:\n");
-            scanf("%d",&nb);
-            if(nb > 0xFFFFFF){printf("ERREUR VALEUR TROP GRANDE\n");break;}
-            printf("Valeur de H:\n");
-            scanf("%d",&l);
+            l = rand()%2;
             ins = creation_ins(l,nb,debut,p,0);
             ins = set_bit(ins,28);
             arm_branch(p,ins);
             printf("contenue du reg15: %d\ncontenue du reg14: %d\n",arm_read_register(p,15)-4,arm_read_register(p,14));
+            if(!((arm_read_register(p,15)-4) == (debut + nb*4))){printf("test fail reg15:%d\n",(debut + nb*4));fail++;}
+            if(!(arm_read_register(p,14) == debut+4)){printf("test fail reg14:%d\n",debut+4);fail++;}
+            printf("##########################################################\n");
             break;
         case BX: // 3
             printf("Quel adresse atterire?:\n");
@@ -85,9 +85,9 @@ int main(){
             printf("pas encore implementer\n");
             break;
         }
-        printf("voulez vous continuer? 1 pour oui 0 pour non\n");
-        scanf("%d",&fin);
+        fin++;
     }
+    printf("il y a eu au total %d erreur de branchement\n",fail);
     memory_destroy(mem);
     registers_destroy(reg);
     arm_destroy(p);

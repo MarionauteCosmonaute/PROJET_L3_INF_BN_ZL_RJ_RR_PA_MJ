@@ -58,7 +58,7 @@ int arm_coprocessor_others_swi(arm_core p, uint32_t ins) {
 
 int arm_miscellaneous(arm_core p, uint32_t ins) {
     if (cond_not_respect(p,ins) == 0){
-        if(0){ // a changer je ne connais pas les autre OPCODE
+        if(!(get_bit(ins,27)) & !(get_bit(ins,26)) & get_bit(ins,24) & !(get_bit(ins,23)) & get_bit(ins,21) & !(get_bit(ins,20))){ // a changer je ne connais pas les autre OPCODE
             return fonction_MSR(p,ins);
         }
         if (get_bits(ins,27,20) == 18){
