@@ -41,7 +41,7 @@ int arm_load_store(arm_core p, uint32_t ins) {
     int w = get_bit(ins, 21);
     int l = get_bit(ins, 20);
     uint32_t offset;
-    uint32_t adresse = (p->reg)->registre[Rn];
+    uint32_t adresse = arm_read_register(p,Rn);
     uint32_t value;
     uint8_t value8;
     if(Rn ==15){
